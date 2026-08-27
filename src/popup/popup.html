@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>YouTube Transcript to PDF</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1 class="title">Transcript to PDF</h1>
+    </header>
+
+    <form id="fetch-form" class="form">
+      <label class="label" for="url">YouTube URL or video ID</label>
+      <div class="row">
+        <input
+          id="url"
+          class="input"
+          type="text"
+          placeholder="https://www.youtube.com/watch?v=..."
+          autocomplete="off"
+          spellcheck="false"
+          required
+        />
+        <button id="fetch" class="button button--primary" type="submit">Get</button>
+      </div>
+
+      <div class="options">
+        <label class="option">
+          <select id="language" class="select" disabled>
+            <option value="auto">Auto</option>
+          </select>
+        </label>
+        <label class="option">
+          <input id="timestamps" type="checkbox" checked />
+          <span>Timestamps</span>
+        </label>
+        <label class="option">
+          <input id="paragraphs" type="checkbox" checked />
+          <span>Paragraphs</span>
+        </label>
+      </div>
+    </form>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" hidden>
+      <div class="meta">
+        <span id="video-title" class="meta__title"></span>
+        <span id="video-meta" class="meta__sub"></span>
+      </div>
+      <pre id="preview" class="preview" tabindex="0"></pre>
+      <div class="actions">
+        <button id="download" class="button button--primary" type="button">Download PDF</button>
+        <button id="print" class="button" type="button" title="Renders through Chrome — keeps non-Latin scripts">Print…</button>
+        <button id="copy" class="button" type="button">Copy</button>
+      </div>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

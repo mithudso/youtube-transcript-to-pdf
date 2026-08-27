@@ -1,0 +1,80 @@
+:root { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: #eceff1;
+  color: #10151b;
+  font: 15px/1.6 Georgia, "Iowan Old Style", "Times New Roman", serif;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #d4d9dd;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.print-button {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #c8202a;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hint { color: #5c6773; }
+
+.document {
+  max-width: 42em;
+  margin: 24px auto 60px;
+  padding: 48px 56px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(16 21 27 / 12%);
+}
+
+.document h1 {
+  margin: 0 0 4px;
+  font-size: 1.6em;
+  line-height: 1.25;
+}
+
+.document .subtitle {
+  margin: 0;
+  color: #5c6773;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.8em;
+}
+
+.document .block { margin: 1.1em 0 0; }
+
+.document .timestamp {
+  display: block;
+  margin-bottom: 2px;
+  color: #c8202a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72em;
+  font-weight: 700;
+}
+
+.document p { margin: 0; }
+
+@media print {
+  body { background: #ffffff; }
+  .no-print { display: none; }
+  .document {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .block { break-inside: avoid; }
+}
