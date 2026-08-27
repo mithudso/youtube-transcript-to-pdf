@@ -74,16 +74,36 @@ gh release create v<version> dist/youtube-transcript-to-pdf-<version>.zip \
 
 Release notes should say what changed for a *user* — not the commit list.
 
-## 7. If publishing to the Chrome Web Store
+## 7. Publishing to the Chrome Web Store
 
-Not done today; the extension is install-from-source only. Before a first
-submission, this repo would need a `CHROMEWEBSTORE.md` carrying the listing
-copy, a per-permission justification (the table in
-[SECURITY.md](../SECURITY.md) is the starting point), a live privacy-policy URL
-matching the data-use disclosure, and at least one 1280×800 screenshot.
+The listing is prepared but **not yet submitted**. Everything the dashboard asks
+for lives in [CHROMEWEBSTORE.md](../../CHROMEWEBSTORE.md): listing copy, the
+per-permission justifications, the data-use disclosure, and the asset inventory.
 
-The permission justifications are what reviews fail on. "Needed for the
-extension to work" is rejected; each one needs a specific, plain-English reason.
+Before a first submission, clear the blockers listed at the top of that file:
+
+1. Set the publisher name and a monitored contact email — both are required and
+   both are shown publicly.
+2. Replace the icon. The current mark reads as YouTube's play button, which is
+   a trademark rejection risk.
+3. Reconsider the name. "YouTube Transcript to PDF" leads with a trademark;
+   "Transcript to PDF for YouTube" is the safer construction. Changing it means
+   editing `manifest.json`, `CHROMEWEBSTORE.md`, and `README.md` together.
+4. Recapture screenshot 1 from a live install rather than the harness render.
+
+Confirm the privacy policy is still live before every submission — a dead URL
+is an automatic rejection:
+
+```bash
+curl -sI https://mithudso.github.io/youtube-transcript-to-pdf/PRIVACY.html | head -1
+```
+
+The permission justifications are what reviews most often fail on. "Needed for
+the extension to work" is rejected; each one needs a specific, plain-English
+reason, which is why they are written out in full in `CHROMEWEBSTORE.md`.
+
+After a successful submission, add a row to that file's Version History and set
+its status.
 
 ## Rolling back
 

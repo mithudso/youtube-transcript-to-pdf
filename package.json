@@ -13,7 +13,8 @@
     "lint:manifest": "node scripts/validate-manifest.mjs",
     "lint:docs": "node scripts/check-doc-indexes.mjs",
     "check": "npm run lint:manifest && npm test && npm run lint:docs",
-    "build": "node scripts/package-extension.mjs"
+    "build": "node scripts/package-extension.mjs",
+    "store:assets": "node scripts/build-store-assets.mjs"
   },
   "repository": {
     "type": "git",

@@ -76,7 +76,7 @@ browser extension. Recorded here so a future audit does not re-raise them.
 | `memory.md`, `prompts.md`, `scripts/rotate-workflow-logs.mjs`, `docs/archive/` | Append-forever operator logs recording every session request. That convention suits an internal working repo; committing session transcripts into an extension repository is noise for contributors and a privacy footprint for the maintainer. |
 | `.env.example` | The extension reads no configuration. `grep -rn "process.env" src/` returns nothing outside `scripts/`, which reads none either. |
 | `.tool-versions` | `.nvmrc` already pins the only toolchain. |
-| `CHROMEWEBSTORE.md` | Not yet publishing to the Chrome Web Store. [runbooks/release.md](runbooks/release.md) records what a first submission would require. |
+| ~~`CHROMEWEBSTORE.md`~~ | **No longer excluded.** Created later the same day along with `PRIVACY.md`, the store screenshots, and the two asset-generation scripts. See the addendum below. |
 
 ## Findings from the audit itself
 
@@ -100,3 +100,23 @@ npm run build           dist/youtube-transcript-to-pdf-1.0.0.zip
 
 Re-run after any change to `manifest.json` permissions, any YouTube markup
 migration, or before a first Chrome Web Store submission.
+
+## Addendum — Chrome Web Store preparation (same day)
+
+Added after the audit above, when the decision was made to prepare a store
+submission:
+
+| File | Purpose |
+| --- | --- |
+| `CHROMEWEBSTORE.md` | Listing copy, per-permission justifications, data-use disclosure, asset inventory, and the blockers that must clear before submission. |
+| `PRIVACY.md` | Privacy policy. Published via GitHub Pages and verified live at `https://mithudso.github.io/youtube-transcript-to-pdf/PRIVACY.html`. |
+| `scripts/build-store-assets.mjs` | Renders the extension's real popup and viewer markup into screenshot harness pages and generates a genuine PDF through the shipping writer. |
+| `scripts/compose-store-screenshots.py` | Composes the captured renders into three 1280×800 screenshots and a 440×280 promo tile. |
+| `store-assets/` | The generated graphics and their inputs. Excluded from the packaged archive. |
+
+Two submission risks were identified and recorded rather than silently shipped:
+the icon closely evokes YouTube's play-button mark, and the extension name leads
+with a trademark. Both are in `CHROMEWEBSTORE.md` under Review Notes.
+
+The repository was also made public, and three Dependabot pull requests bumping
+GitHub Actions to v7 were merged.

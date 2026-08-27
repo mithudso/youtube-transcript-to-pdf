@@ -1,7 +1,7 @@
 {
   "schema": "high-signal-file-index/1",
   "repository": "youtube-transcript-to-pdf",
-  "generatedFrom": "cc02654",
+  "generatedFrom": "07a796c",
   "note": "Retrieval index for the files worth reading. Validate with `npm run lint:docs`.",
   "files": [
     {
@@ -26,6 +26,18 @@
       ]
     },
     {
+      "path": "scripts/build-store-assets.mjs",
+      "kind": "tooling",
+      "lines": 199,
+      "description": "Renders the real popup and viewer markup into screenshot harness pages and generates a genuine PDF, for Chrome Web Store assets.",
+      "keywords": [
+        "store",
+        "screenshots",
+        "harness",
+        "assets"
+      ]
+    },
+    {
       "path": "scripts/check-doc-indexes.mjs",
       "kind": "tooling",
       "lines": 112,
@@ -34,6 +46,18 @@
         "docs",
         "index",
         "ci"
+      ]
+    },
+    {
+      "path": "scripts/compose-store-screenshots.py",
+      "kind": "tooling",
+      "lines": 257,
+      "description": "Composes captured harness renders into the 1280x800 store screenshots and the 440x280 promo tile.",
+      "keywords": [
+        "store",
+        "screenshots",
+        "pillow",
+        "assets"
       ]
     },
     {

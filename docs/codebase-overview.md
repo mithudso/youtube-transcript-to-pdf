@@ -18,7 +18,8 @@ youtube-transcript-to-pdf/
 │   └── viewer/            printable page for the Chrome print-to-PDF path
 ├── scripts/               validation, doc index checks, packaging
 ├── test/                  unit tests, Node built-in runner
-└── docs/                  this suite
+├── docs/                  this suite
+└── store-assets/          Chrome Web Store screenshots and their sources
 ```
 
 ## Root
@@ -34,6 +35,8 @@ youtube-transcript-to-pdf/
 | `CONTRIBUTING.md` | Setup, the PR bar, and what good change looks like here. |
 | `CODE_OF_CONDUCT.md` | Behaviour expectations. |
 | `LICENSE` | MIT. |
+| `PRIVACY.md` | Privacy policy, published via GitHub Pages as the Chrome Web Store policy URL. |
+| `CHROMEWEBSTORE.md` | Store listing copy, permission justifications, data disclosure, and submission blockers. |
 | `.editorconfig`, `.gitattributes`, `.gitignore`, `.nvmrc` | Formatting, line endings, ignores, pinned Node. |
 
 ## `src/lib/` — pure modules
@@ -82,6 +85,8 @@ under plain Node, and it is the codebase's most important structural rule.
 | `scripts/validate-manifest.mjs` | Manifest shape, referenced files exist, icon PNG signatures and real pixel dimensions match their declared size, no Manifest V2 keys, no `<all_urls>`. |
 | `scripts/check-doc-indexes.mjs` | Every path in the doc indexes resolves, and no source file is missing from the index. `--prune` drops dead entries. |
 | `scripts/package-extension.mjs` | Builds `dist/<name>-<version>.zip` from only the files Chrome loads. |
+| `scripts/build-store-assets.mjs` | Renders the real popup and viewer markup into screenshot harness pages, and generates a genuine PDF, for Chrome Web Store assets. |
+| `scripts/compose-store-screenshots.py` | Composes the captured harness renders into 1280×800 store screenshots and the 440×280 promo tile. |
 
 ## `test/` — unit tests
 
@@ -130,3 +135,23 @@ the filename.
 Node 20/22/24, then packaging), `dependabot.yml` (Actions only — there are no
 npm deps), `CODEOWNERS`, `SECURITY.md`, `PULL_REQUEST_TEMPLATE.md`, and issue
 templates.
+
+## `store-assets/`
+
+Chrome Web Store graphics and the inputs that produce them. Excluded from the
+packaged archive — `scripts/package-extension.mjs` ships only `manifest.json`,
+`icons/`, `src/`, and `LICENSE`.
+
+| File | What it is |
+| --- | --- |
+| `store-assets/sample-transcript.json` | Authored sample content used to render the screenshots, so the store assets carry no third-party text. |
+| `store-assets/sample-transcript.pdf` | A genuine PDF produced by the shipping writer from that sample. |
+| `store-assets/screenshot-1-popup.png` | 1280×800 — the popup mid-export. |
+| `store-assets/screenshot-2-pdf.png` | 1280×800 — the exported document. |
+| `store-assets/screenshot-3-viewer.png` | 1280×800 — the Print path. |
+| `store-assets/promo-tile-small.png` | 440×280 small promo tile. |
+| `store-assets/raw-popup.jpg`, `raw-viewer.jpg`, `raw-pdf.png` | The captures the composer crops from, kept so the screenshots can be rebuilt without a browser pass. |
+
+Regenerate the sources with `npm run store:assets`, then recompose with
+`python3 scripts/compose-store-screenshots.py`. Recapturing the raw renders
+needs a browser — see [CHROMEWEBSTORE.md](../CHROMEWEBSTORE.md).

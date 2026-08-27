@@ -126,6 +126,13 @@ and the bar for a pull request.
 | [docs/onboarding.md](docs/onboarding.md) | A first-hour path through the codebase |
 | [docs/runbooks/](docs/runbooks/) | Fixing a YouTube markup change; cutting a release |
 
+## Privacy
+
+No data is collected, stored, or transmitted. The only host the extension can
+reach is `youtube.com`, and requests are made without your cookies attached.
+Full policy: [PRIVACY.md](PRIVACY.md)
+([published copy](https://mithudso.github.io/youtube-transcript-to-pdf/PRIVACY.html)).
+
 ## Contributing
 
 Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and
