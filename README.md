@@ -84,7 +84,7 @@ YouTube session is not attached.
 ## Development
 
 ```bash
-npm test              # 26 unit tests over the pure modules
+npm test              # 31 unit tests over the pure modules
 npm run lint:manifest # manifest + icon-dimension validation
 npm run check         # both
 npm run build         # dist/youtube-transcript-to-pdf-<version>.zip

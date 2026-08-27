@@ -64,5 +64,8 @@ document.getElementById('print').addEventListener('click', () => window.print())
     return;
   }
 
+  // The payload is a one-shot handoff; drop it so the transcript does not sit
+  // in session storage for the rest of the browser session.
+  await chrome.storage.session.remove(VIEWER_KEY);
   render(payload);
 })();

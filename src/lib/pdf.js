@@ -137,7 +137,13 @@ export function wrapText(text, maxWidth, fontSize, bold = false) {
  * @returns {string}
  */
 function escapePdfString(text) {
-  return text.replace(/([\\()])/g, '\\$1').replace(/\r/g, '');
+  return text
+    .replace(/([\\()])/g, '\\$1')
+    // A raw newline inside a literal string silently continues it onto the next
+    // line, swallowing the operators that follow. Control characters are
+    // dropped for the same reason.
+    .replace(/\n/g, '\\n')
+    .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '');
 }
 
 /**
@@ -337,9 +343,16 @@ function assemblePdf(pageOps, page, title) {
  */
 export function toSafeFilename(title) {
   const base = toWinAnsi(String(title ?? 'transcript'))
+    // chrome.downloads rejects path separators, reserved characters, control
+    // characters, relative segments, and leading or trailing dots.
+    .replace(/[\u0000-\u001f\u007f]/g, '')
     .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\.{2,}/g, '.')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 120);
+    .replace(/^\.+/, '')
+    .replace(/[.\s]+$/, '')
+    .slice(0, 120)
+    .trim();
   return `${base || 'transcript'}.pdf`;
 }

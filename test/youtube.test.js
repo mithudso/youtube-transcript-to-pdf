@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { parseVideoId, parseWatchPage, pickTrack, watchUrl } from '../src/lib/youtube.js';
+import { extractJsonVar, parseVideoId, parseWatchPage, pickTrack, watchUrl } from '../src/lib/youtube.js';
 
 test('parseVideoId accepts every common YouTube URL shape', () => {
   const cases = {
@@ -92,4 +92,26 @@ test('pickTrack prefers exact language, then base language, then human captions'
   assert.equal(pickTrack(tracks, 'auto').languageCode, 'de');
   assert.equal(pickTrack(tracks, 'fr').languageCode, 'de');
   assert.equal(pickTrack([], 'en'), null);
+});
+
+test('parseWatchPage marks an unparseable response so it is not mistaken for a captionless video', () => {
+  const consentWall = parseWatchPage('<html><body>Before you continue to YouTube</body></html>');
+  assert.equal(consentWall.parsed, false);
+  assert.deepEqual(consentWall.tracks, []);
+
+  const captionless = parseWatchPage(
+    'var ytInitialPlayerResponse = {"videoDetails":{"title":"Silent"},"playabilityStatus":{"status":"OK"}};',
+  );
+  assert.equal(captionless.parsed, true);
+  assert.deepEqual(captionless.tracks, []);
+});
+
+test('extractJsonVar treats the variable name as a literal, not a pattern', () => {
+  const html = 'var a.b = {"hit":true}; var axb = {"hit":false};';
+  assert.equal(extractJsonVar(html, 'a.b').hit, true);
+});
+
+test('parseWatchPage keeps escaped ampersands intact in signed caption URLs', () => {
+  const html = '"captionTracks":[{"baseUrl":"https://x.test/a\\u0026sig=1\\u0026k=2","languageCode":"en"}]';
+  assert.equal(parseWatchPage(html).tracks[0].baseUrl, 'https://x.test/a&sig=1&k=2');
 });

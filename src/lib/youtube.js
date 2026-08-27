@@ -74,18 +74,6 @@ export function watchUrl(videoId) {
 }
 
 /**
- * Decodes the \uXXXX escapes YouTube embeds inside its inline JSON blobs.
- *
- * @param {string} value
- * @returns {string}
- */
-function decodeUnicodeEscapes(value) {
-  return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
-  );
-}
-
-/**
  * Scans forward from `start` (the index of an opening brace or bracket) and
  * returns the index just past the matching closing brace, honouring JSON string
  * literals and escapes so braces inside strings do not confuse the scan.
@@ -127,11 +115,12 @@ function findBalancedEnd(text, start) {
  * e.g. `var ytInitialPlayerResponse = {...};`.
  *
  * @param {string} html
- * @param {string} varName
+ * @param {string} varName Treated as a literal name, not a pattern.
  * @returns {object|null}
  */
 export function extractJsonVar(html, varName) {
-  const marker = new RegExp(`(?:var\\s+)?${varName}\\s*=\\s*\\{`);
+  const literal = String(varName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = new RegExp(`(?:var\\s+)?${literal}\\s*=\\s*\\{`);
   const match = marker.exec(html);
   if (!match) return null;
 
@@ -162,7 +151,7 @@ export function extractJsonVar(html, varName) {
  * serves.
  *
  * @param {string} html Raw watch-page HTML.
- * @returns {{tracks: CaptionTrack[], title: string|null, author: string|null, isPlayable: boolean, reason: string|null}}
+ * @returns {{tracks: CaptionTrack[], title: string|null, author: string|null, isPlayable: boolean, reason: string|null, parsed: boolean}}
  */
 export function parseWatchPage(html) {
   const player = extractJsonVar(html, 'ytInitialPlayerResponse');
@@ -179,9 +168,10 @@ export function parseWatchPage(html) {
       const end = findBalancedEnd(html, fallback.index + fallback[0].length - 1);
       if (end !== -1) {
         try {
-          rawTracks = JSON.parse(
-            decodeUnicodeEscapes(html.slice(fallback.index + fallback[0].length - 1, end)),
-          );
+          // JSON.parse decodes the \uXXXX escapes YouTube embeds here. Decoding
+          // them by hand first would corrupt any payload where an escape
+          // resolves to a quote or backslash.
+          rawTracks = JSON.parse(html.slice(fallback.index + fallback[0].length - 1, end));
         } catch {
           rawTracks = null;
         }
@@ -192,7 +182,7 @@ export function parseWatchPage(html) {
   const tracks = (rawTracks ?? [])
     .filter((track) => typeof track?.baseUrl === 'string')
     .map((track) => ({
-      baseUrl: decodeUnicodeEscapes(track.baseUrl),
+      baseUrl: track.baseUrl,
       languageCode: track.languageCode ?? '',
       name:
         track.name?.simpleText ??
@@ -203,6 +193,10 @@ export function parseWatchPage(html) {
     }));
 
   return {
+    // False when neither the player blob nor the caption-track array was found,
+    // which means the response was not a real watch page (a consent wall, a
+    // captcha, an error shell) rather than a video that simply has no captions.
+    parsed: player !== null || rawTracks !== null,
     tracks,
     title: details?.title ?? null,
     author: details?.author ?? null,

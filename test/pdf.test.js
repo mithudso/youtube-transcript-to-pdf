@@ -108,3 +108,19 @@ test('toSafeFilename strips path separators and always ends in .pdf', () => {
   assert.equal(toSafeFilename(''), 'transcript.pdf');
   assert.ok(toSafeFilename('x'.repeat(400)).length <= 124);
 });
+
+test('escaping neutralises newlines that would break the content stream', () => {
+  const bytes = buildTranscriptPdf({ title: 'Title', blocks: [{ text: 'a\nbc' }] });
+  const text = Buffer.from(bytes).toString('latin1');
+
+  verifyStructure(bytes);
+  assert.ok(!/\(a\nb/.test(text), 'no raw newline survives inside a literal string');
+});
+
+test('toSafeFilename strips the names chrome.downloads rejects', () => {
+  assert.equal(toSafeFilename('...hidden'), 'hidden.pdf');
+  assert.equal(toSafeFilename('../../etc/passwd'), '-.-etc-passwd.pdf');
+  assert.equal(toSafeFilename('trailing dots...'), 'trailing dots.pdf');
+  assert.equal(toSafeFilename('a' + String.fromCharCode(0) + 'b'), 'ab.pdf');
+  assert.equal(toSafeFilename('   '), 'transcript.pdf');
+});

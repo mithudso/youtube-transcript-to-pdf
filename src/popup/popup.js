@@ -148,6 +148,7 @@ async function handleFetch(event) {
       transcript.author,
       `${transcript.segments.length} lines`,
       transcript.isGenerated ? 'auto-generated captions' : null,
+      transcript.source === 'panel' ? 'read from transcript panel' : null,
     ]
       .filter(Boolean)
       .join(' · ');
@@ -161,6 +162,32 @@ async function handleFetch(event) {
   } finally {
     elements.fetch.disabled = false;
   }
+}
+
+/**
+ * Releases a blob URL once its download has finished.
+ *
+ * A blob URL minted in the popup dies with the popup's document, so the
+ * download must start while the popup is still open — hence `saveAs: false`,
+ * which begins the write immediately instead of waiting on a save dialog the
+ * user might leave open long enough for the popup to close.
+ *
+ * @param {string} objectUrl
+ * @param {number} downloadId
+ */
+function revokeWhenComplete(objectUrl, downloadId) {
+  /**
+   * @param {chrome.downloads.DownloadDelta} delta
+   */
+  const onChanged = (delta) => {
+    if (delta.id !== downloadId) return;
+    if (delta.state?.current !== 'complete' && delta.state?.current !== 'interrupted') return;
+
+    chrome.downloads.onChanged.removeListener(onChanged);
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  chrome.downloads.onChanged.addListener(onChanged);
 }
 
 /** Builds the PDF in-page and hands the bytes to chrome.downloads. */
@@ -178,20 +205,22 @@ async function handleDownload() {
       blocks: toBlocks(),
     });
 
+    const filename = toSafeFilename(transcript.title);
     objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    await chrome.downloads.download({
+
+    const downloadId = await chrome.downloads.download({
       url: objectUrl,
-      filename: toSafeFilename(transcript.title),
-      saveAs: true,
+      filename,
+      saveAs: false,
     });
 
-    setStatus('PDF saved.');
+    revokeWhenComplete(objectUrl, downloadId);
+    objectUrl = null;
+    setStatus(`Saved ${filename} to your downloads.`);
   } catch (error) {
     setStatus(`Could not save the PDF: ${error.message}`, 'error');
   } finally {
-    // Chrome copies the blob before the download starts; revoking on the next
-    // tick keeps the popup from leaking the buffer if it stays open.
-    if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
     elements.download.disabled = false;
   }
 }

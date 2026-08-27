@@ -26,11 +26,6 @@ const REQUEST_TIMEOUT_MS = 15000;
 /** How long to wait for a freshly opened watch page to finish loading. */
 const TAB_LOAD_TIMEOUT_MS = 20000;
 
-/** Desktop UA so YouTube serves the full watch page rather than a mobile shell. */
-const DESKTOP_UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
-
 /** Path of the injected transcript-panel reader, relative to the extension root. */
 const SCRAPER_FILE = 'src/content/scrape-transcript.js';
 
@@ -89,8 +84,10 @@ async function fetchWithTimeout(url, init = {}) {
  */
 async function loadWatchPage(videoId) {
   // `hl=en` keeps the consent interstitial and track names in a known language.
+  // `User-Agent` is a forbidden header name — fetch drops it — but the worker
+  // already presents as desktop Chrome, so YouTube serves the full watch page.
   const response = await fetchWithTimeout(`${watchUrl(videoId)}&hl=en`, {
-    headers: { 'User-Agent': DESKTOP_UA, 'Accept-Language': 'en-US,en;q=0.9' },
+    headers: { 'Accept-Language': 'en-US,en;q=0.9' },
   });
 
   if (!response.ok) {
@@ -113,7 +110,7 @@ async function loadWatchPage(videoId) {
 async function loadTrackDirectly(track) {
   for (const url of [`${track.baseUrl}&fmt=json3`, track.baseUrl]) {
     try {
-      const response = await fetchWithTimeout(url, { headers: { 'User-Agent': DESKTOP_UA } });
+      const response = await fetchWithTimeout(url);
       if (!response.ok) continue;
 
       const segments = parseCaptions(await response.text());
@@ -235,6 +232,14 @@ async function getTranscript(request) {
     );
   }
 
+  if (!page.parsed) {
+    throw new TranscriptError(
+      'unreadable',
+      'YouTube did not return a usable video page — it may have served a ' +
+        'consent or verification screen. Open the video in a tab and try again.',
+    );
+  }
+
   if (page.tracks.length === 0) {
     throw new TranscriptError(
       'no-captions',
@@ -279,12 +284,26 @@ async function getTranscript(request) {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== 'FETCH_TRANSCRIPT') return undefined;
 
+  /**
+   * Replies to the popup, tolerating a popup that closed mid-fetch — the
+   * message port is gone by then and sendResponse throws.
+   *
+   * @param {object} payload
+   */
+  const reply = (payload) => {
+    try {
+      sendResponse(payload);
+    } catch (error) {
+      console.warn('Popup closed before the transcript was delivered:', error);
+    }
+  };
+
   (async () => {
     try {
-      sendResponse({ ok: true, data: await getTranscript(message) });
+      reply({ ok: true, data: await getTranscript(message) });
     } catch (error) {
       console.error('Transcript fetch failed:', error);
-      sendResponse({
+      reply({
         ok: false,
         error: {
           code: error instanceof TranscriptError ? error.code : 'unknown',

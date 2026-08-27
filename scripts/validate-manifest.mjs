@@ -37,6 +37,12 @@ function expect(condition, message) {
  */
 function readPngSize(path) {
   const bytes = readFileSync(path);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+  if (bytes.length < 24 || !bytes.subarray(0, 8).equals(signature)) {
+    return { width: -1, height: -1 };
+  }
+
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
@@ -47,6 +53,10 @@ function readPngSize(path) {
  * @param {string} label
  */
 function expectFile(relativePath, label) {
+  if (!relativePath) {
+    problems.push(`${label} is missing`);
+    return;
+  }
   expect(existsSync(join(root, relativePath)), `${label} references a missing file: ${relativePath}`);
 }
 
@@ -66,9 +76,8 @@ expect(
   'description is required and must be 132 characters or fewer',
 );
 
-for (const key of ['background.scripts', 'browser_action', 'page_action', 'web_accessible_resources.legacy']) {
-  const [head] = key.split('.');
-  expect(!(head in manifest && key === head), `${head} is a Manifest V2 key`);
+for (const key of ['browser_action', 'page_action', 'persistent', 'content_security_policy_string']) {
+  expect(!(key in manifest), `${key} is a Manifest V2 key`);
 }
 expect(!manifest.background?.scripts, 'background.scripts is Manifest V2; use background.service_worker');
 
