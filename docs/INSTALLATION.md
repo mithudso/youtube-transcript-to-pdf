@@ -21,7 +21,7 @@ cd youtube-transcript-to-pdf
 2. Turn on **Developer mode** (top right).
 3. Click **Load unpacked**.
 4. Select the cloned directory — the one containing `manifest.json`.
-5. Pin **YouTube Transcript to PDF** to the toolbar.
+5. Pin **Transcript to PDF for YouTube** to the toolbar.
 
 Chrome will show a "Loading unpacked extension" notice on each restart. That is
 normal for developer-mode extensions.

@@ -80,16 +80,17 @@ The listing is prepared but **not yet submitted**. Everything the dashboard asks
 for lives in [CHROMEWEBSTORE.md](../../CHROMEWEBSTORE.md): listing copy, the
 per-permission justifications, the data-use disclosure, and the asset inventory.
 
-Before a first submission, clear the blockers listed at the top of that file:
+The blockers that file tracked are cleared: the publisher name and contact
+email are set, the icon is now a document mark rather than a play triangle, and
+the extension was renamed to "Transcript to PDF for YouTube" so it no longer
+leads with a trademark.
 
-1. Set the publisher name and a monitored contact email — both are required and
-   both are shown publicly.
-2. Replace the icon. The current mark reads as YouTube's play button, which is
-   a trademark rejection risk.
-3. Reconsider the name. "YouTube Transcript to PDF" leads with a trademark;
-   "Transcript to PDF for YouTube" is the safer construction. Changing it means
-   editing `manifest.json`, `CHROMEWEBSTORE.md`, and `README.md` together.
-4. Recapture screenshot 1 from a live install rather than the harness render.
+One item stays open by nature: **screenshot 1 is a harness render, not a capture
+of the running extension.** Browser automation cannot reach `chrome-extension://`
+URLs, so a live popup capture has to be taken by hand — open the popup, take a
+screenshot, drop it in `store-assets/` as `raw-popup-live.png`, and point
+`build_popup_shot()` at it. The harness render is accurate, but a live capture
+is what the store guidelines mean by showing the extension in action.
 
 Confirm the privacy policy is still live before every submission — a dead URL
 is an automatic rejection:

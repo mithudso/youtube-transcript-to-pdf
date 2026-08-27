@@ -1,4 +1,4 @@
-# Privacy Policy for YouTube Transcript to PDF
+# Privacy Policy for Transcript to PDF for YouTube
 
 **Last updated: 27 August 2026**
 

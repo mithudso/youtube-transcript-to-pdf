@@ -281,7 +281,7 @@ function assemblePdf(pageOps, page, title) {
   objects.set(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
   objects.set(
     5,
-    `<< /Title (${escapePdfString(toWinAnsi(title))}) /Producer (YouTube Transcript to PDF) >>`,
+    `<< /Title (${escapePdfString(toWinAnsi(title))}) /Producer (Transcript to PDF for YouTube) >>`,
   );
 
   pages.forEach((ops, index) => {

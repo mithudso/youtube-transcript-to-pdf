@@ -1,4 +1,4 @@
-# YouTube Transcript to PDF
+# Transcript to PDF for YouTube
 
 A Manifest V3 Chrome extension that takes a YouTube URL, pulls the video's
 transcript, and exports it as a formatted PDF — no server, no API key, no

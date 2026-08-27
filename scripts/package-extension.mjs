@@ -18,7 +18,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const INCLUDED = ['manifest.json', 'icons', 'src', 'LICENSE'];
 
 const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
-const slug = manifest.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// The archive is named from package.json rather than the manifest's display
+// name: the display name is marketing copy that can change, while the package
+// name is the stable repository identifier every doc and release refers to.
+const { name: slug } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const archive = join(root, 'dist', `${slug}-${manifest.version}.zip`);
 
 mkdirSync(join(root, 'dist'), { recursive: true });

@@ -231,12 +231,17 @@ def build_promo_tile() -> None:
     icon = Image.open(ROOT / "icons/icon-128.png").convert("RGBA").resize((72, 72), Image.LANCZOS)
     tile.alpha_composite(icon, (36, 52))
 
-    draw.text((36, 148), "Transcript to PDF", font=font(BOLD_FONT, 30), fill=INK)
+    head_face = font(BOLD_FONT, 28)
+    y = 146
+    for line in wrap(draw, "Transcript to PDF for YouTube", head_face, 368):
+        draw.text((36, y), line, font=head_face, fill=INK)
+        y += 34
+
     body_face = font(REGULAR_FONT, 17)
     for index, line in enumerate(
-        wrap(draw, "Export any YouTube transcript as a formatted PDF.", body_face, 368)
+        wrap(draw, "Export any video's transcript as a formatted PDF.", body_face, 368)
     ):
-        draw.text((36, 192 + index * 25), line, font=body_face, fill=MUTED)
+        draw.text((36, y + 8 + index * 25), line, font=body_face, fill=MUTED)
 
     tile.convert("RGB").save(ASSETS / "promo-tile-small.png")
 

@@ -114,9 +114,25 @@ submission:
 | `scripts/compose-store-screenshots.py` | Composes the captured renders into three 1280×800 screenshots and a 440×280 promo tile. |
 | `store-assets/` | The generated graphics and their inputs. Excluded from the packaged archive. |
 
-Two submission risks were identified and recorded rather than silently shipped:
-the icon closely evokes YouTube's play-button mark, and the extension name leads
-with a trademark. Both are in `CHROMEWEBSTORE.md` under Review Notes.
+Two submission risks were identified, raised rather than silently shipped, and
+then resolved: the icon closely evoked YouTube's play-button mark, and the
+extension name led with a trademark.
 
 The repository was also made public, and three Dependabot pull requests bumping
 GitHub Actions to v7 were merged.
+
+### Resolution — store submission blockers
+
+| Blocker | Resolution |
+| --- | --- |
+| Icon read as YouTube's play button | Redrawn as a document — a page with a turned-down corner and lines of text — by `scripts/generate-icons.py`. Text lines are dropped below 32px, where they would blur into a smear. |
+| Name led with a trademark | Renamed "YouTube Transcript to PDF" → "Transcript to PDF for YouTube" across `manifest.json`, `CHROMEWEBSTORE.md`, `README.md`, `PRIVACY.md`, `docs/INSTALLATION.md`, and the PDF `Producer` string. |
+| Publisher name and contact email unset | Set in `CHROMEWEBSTORE.md`. |
+| Screenshot 1 was a harness render | Still open — browser automation cannot reach `chrome-extension://` URLs, so a live popup capture must be taken by hand. Recorded in [runbooks/release.md](runbooks/release.md). |
+
+The archive name was also decoupled from the display name: `package-extension.mjs`
+now derives it from `package.json`, so renaming the extension no longer changes
+the release artifact every document refers to.
+
+The verification line above records the pre-rename name, which is what ran at
+the time of the audit.

@@ -1,7 +1,7 @@
 {
   "schema": "high-signal-file-index/1",
   "repository": "youtube-transcript-to-pdf",
-  "generatedFrom": "07a796c",
+  "generatedFrom": "e1964c3",
   "note": "Retrieval index for the files worth reading. Validate with `npm run lint:docs`.",
   "files": [
     {
@@ -56,6 +56,18 @@
       "keywords": [
         "store",
         "screenshots",
+        "pillow",
+        "assets"
+      ]
+    },
+    {
+      "path": "scripts/generate-icons.py",
+      "kind": "tooling",
+      "lines": 104,
+      "description": "Draws the extension's icon set \u2014 a document mark on the project's red field \u2014 at every declared size, with size-aware detail.",
+      "keywords": [
+        "icons",
+        "branding",
         "pillow",
         "assets"
       ]

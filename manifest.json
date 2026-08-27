@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Transcript to PDF",
+  "name": "Transcript to PDF for YouTube",
   "version": "1.0.0",
   "description": "Fetches the transcript of any YouTube video from its URL and exports it as a formatted PDF file.",
   "minimum_chrome_version": "116",
@@ -11,7 +11,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_title": "YouTube Transcript to PDF",
+    "default_title": "Transcript to PDF for YouTube",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -24,7 +24,12 @@
     "service_worker": "src/background/service-worker.js",
     "type": "module"
   },
-  "permissions": ["tabs", "scripting", "storage", "downloads"],
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "downloads"
+  ],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://m.youtube.com/*"
