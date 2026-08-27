@@ -130,6 +130,7 @@ the filename.
 | `docs/codebase-overview.md` | This file. |
 | `docs/high_signal_file_index.json` | Machine-readable retrieval index. |
 | `docs/runbooks/transcript-panel-broke.md` | Diagnosing and fixing a YouTube markup change. |
+| `docs/runbooks/chrome-web-store-submission.md` | Field-by-field walkthrough of a store submission, and what to do if it is rejected. |
 | `docs/runbooks/release.md` | Cutting a release. |
 | `docs/repo-bootstrap-audit-2026-08-27.md` | Standard-compliance audit and the deliberate exclusions. |
 
@@ -154,6 +155,7 @@ packaged archive — `scripts/package-extension.mjs` ships only `manifest.json`,
 | `store-assets/screenshot-2-pdf.png` | 1280×800 — the exported document. |
 | `store-assets/screenshot-3-viewer.png` | 1280×800 — the Print path. |
 | `store-assets/promo-tile-small.png` | 440×280 small promo tile. |
+| `store-assets/raw-popup-live.png` | A hand-taken capture of the running popup, cropped to the popup alone. Preferred over the harness render for screenshot 1. |
 | `store-assets/raw-popup.jpg`, `raw-viewer.jpg`, `raw-pdf.png` | The captures the composer crops from, kept so the screenshots can be rebuilt without a browser pass. |
 
 Regenerate the sources with `npm run store:assets`, then recompose with

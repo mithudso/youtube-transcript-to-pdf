@@ -6,6 +6,8 @@ browser screenshot pass, and lays them out on the 1280x800 canvas the store
 expects, along with the 440x280 small promo tile.
 
 Inputs (in ``store-assets/``):
+    raw-popup-live.png  optional hand-taken capture of the running popup;
+                        used for screenshot 1 when present
     raw-popup.jpg    full-viewport capture of harness-popup.html
     raw-viewer.jpg   full-viewport capture of harness-viewer.html
     raw-pdf.png      page 1 of sample-transcript.pdf, rendered by ``sips``
@@ -164,9 +166,19 @@ def flatten(image: Image.Image) -> Image.Image:
 
 
 def build_popup_shot() -> None:
-    """Screenshot 1: the popup, mid-export."""
-    # The popup renders at 988x1194 CSS pixels at the zoom used for capture.
-    art = require("raw-popup.jpg").crop(css_box(0, 0, 988, 1194))
+    """Screenshot 1: the popup, mid-export.
+
+    Prefers a capture of the running extension when one is available. Browser
+    automation cannot reach `chrome-extension://` URLs, so that capture has to
+    be taken by hand and dropped in as `raw-popup-live.png`; without it, the
+    harness render stands in.
+    """
+    live = ASSETS / "raw-popup-live.png"
+    if live.exists():
+        art = flatten(Image.open(live))
+    else:
+        # The popup renders at 988x1194 CSS pixels at the zoom used for capture.
+        art = require("raw-popup.jpg").crop(css_box(0, 0, 988, 1194))
     canvas = new_canvas()
 
     draw_copy(
@@ -176,7 +188,8 @@ def build_popup_shot() -> None:
         "language, choose timestamps and paragraphs, and export.",
         (80, 150, 520),
     )
-    paste_card(canvas, scaled(art, 664), (688, 68))
+    card = scaled(art, 664)
+    paste_card(canvas, card, (CANVAS[0] - card.width - 90, 68))
     canvas.convert("RGB").save(ASSETS / "screenshot-1-popup.png")
 
 

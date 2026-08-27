@@ -85,12 +85,14 @@ email are set, the icon is now a document mark rather than a play triangle, and
 the extension was renamed to "Transcript to PDF for YouTube" so it no longer
 leads with a trademark.
 
-One item stays open by nature: **screenshot 1 is a harness render, not a capture
-of the running extension.** Browser automation cannot reach `chrome-extension://`
-URLs, so a live popup capture has to be taken by hand — open the popup, take a
-screenshot, drop it in `store-assets/` as `raw-popup-live.png`, and point
-`build_popup_shot()` at it. The harness render is accurate, but a live capture
-is what the store guidelines mean by showing the extension in action.
+Screenshot 1 is now a capture of the running extension. Browser automation
+cannot reach `chrome-extension://` URLs, so that capture has to be taken by
+hand: open the popup with a transcript loaded, screenshot it, crop to the popup
+alone, and save it as `store-assets/raw-popup-live.png`. The composer picks it
+up automatically and falls back to the harness render when it is absent.
+
+For the full submission procedure, see
+[chrome-web-store-submission.md](chrome-web-store-submission.md).
 
 Confirm the privacy policy is still live before every submission — a dead URL
 is an automatic rejection:

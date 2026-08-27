@@ -1,7 +1,7 @@
 {
   "schema": "high-signal-file-index/1",
   "repository": "youtube-transcript-to-pdf",
-  "generatedFrom": "e1964c3",
+  "generatedFrom": "bb79a94",
   "note": "Retrieval index for the files worth reading. Validate with `npm run lint:docs`.",
   "files": [
     {
