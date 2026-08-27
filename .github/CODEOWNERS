@@ -1,0 +1,10 @@
+# Default owner for everything in this repository.
+*                       @mithudso
+
+# Anything that changes the extension's privileges or its handling of page data
+# deserves a deliberate second look.
+/manifest.json          @mithudso
+/src/background/        @mithudso
+/src/content/           @mithudso
+/docs/SECURITY.md       @mithudso
+/.github/               @mithudso

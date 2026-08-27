@@ -1,0 +1,224 @@
+{
+  "schema": "high-signal-file-index/1",
+  "repository": "youtube-transcript-to-pdf",
+  "generatedFrom": "cc02654",
+  "note": "Retrieval index for the files worth reading. Validate with `npm run lint:docs`.",
+  "files": [
+    {
+      "path": "manifest.json",
+      "kind": "config",
+      "lines": 32,
+      "description": "Manifest V3 declaration: permissions, host permissions, service worker, popup, icons.",
+      "keywords": [
+        "manifest",
+        "permissions",
+        "mv3"
+      ]
+    },
+    {
+      "path": "package.json",
+      "kind": "config",
+      "lines": 17,
+      "description": "npm scripts for validation, tests, doc index checks, and packaging. Zero dependencies.",
+      "keywords": [
+        "scripts",
+        "npm"
+      ]
+    },
+    {
+      "path": "scripts/check-doc-indexes.mjs",
+      "kind": "tooling",
+      "lines": 112,
+      "description": "Path-validates the documentation retrieval indexes; --prune removes dead entries.",
+      "keywords": [
+        "docs",
+        "index",
+        "ci"
+      ]
+    },
+    {
+      "path": "scripts/package-extension.mjs",
+      "kind": "tooling",
+      "lines": 32,
+      "description": "Builds the Chrome Web Store archive from only the files Chrome loads.",
+      "keywords": [
+        "build",
+        "zip",
+        "release"
+      ]
+    },
+    {
+      "path": "scripts/validate-manifest.mjs",
+      "kind": "tooling",
+      "lines": 113,
+      "description": "Validates manifest shape, referenced files, icon PNG signatures and real pixel dimensions, and absence of Manifest V2 keys.",
+      "keywords": [
+        "validation",
+        "manifest",
+        "icons",
+        "ci"
+      ]
+    },
+    {
+      "path": "src/background/service-worker.js",
+      "kind": "source",
+      "lines": 317,
+      "description": "MV3 service worker. Owns all network and tab work; runs the direct-download and transcript-panel strategies; message contract with the popup.",
+      "keywords": [
+        "service worker",
+        "fetch",
+        "tabs",
+        "strategies",
+        "errors"
+      ]
+    },
+    {
+      "path": "src/content/scrape-transcript.js",
+      "kind": "source",
+      "lines": 141,
+      "description": "Injected transcript-panel reader. Handles both YouTube markup generations plus a structural fallback. The most fragile file in the repo.",
+      "keywords": [
+        "content script",
+        "dom",
+        "transcript panel",
+        "selectors"
+      ]
+    },
+    {
+      "path": "src/lib/pdf.js",
+      "kind": "source",
+      "lines": 358,
+      "description": "Dependency-free PDF 1.4 writer: toWinAnsi, wrapText, buildTranscriptPdf, toSafeFilename. Helvetica AFM metrics, verified xref table.",
+      "keywords": [
+        "pdf",
+        "helvetica",
+        "word wrap",
+        "winansi",
+        "filename"
+      ]
+    },
+    {
+      "path": "src/lib/transcript.js",
+      "kind": "source",
+      "lines": 218,
+      "description": "Pure caption parsing and formatting: parseJson3, parseTimedTextXml, parseCaptions, formatTimestamp, groupIntoParagraphs, renderText.",
+      "keywords": [
+        "captions",
+        "json3",
+        "timedtext xml",
+        "paragraphs",
+        "timestamps"
+      ]
+    },
+    {
+      "path": "src/lib/youtube.js",
+      "kind": "source",
+      "lines": 232,
+      "description": "Pure YouTube URL parsing and watch-page scraping: parseVideoId, parseWatchPage, pickTrack, extractJsonVar, watchUrl.",
+      "keywords": [
+        "url parsing",
+        "video id",
+        "caption tracks",
+        "watch page"
+      ]
+    },
+    {
+      "path": "src/popup/popup.css",
+      "kind": "style",
+      "lines": 144,
+      "description": "Popup styles with light and dark palettes.",
+      "keywords": [
+        "popup",
+        "css",
+        "dark mode"
+      ]
+    },
+    {
+      "path": "src/popup/popup.html",
+      "kind": "markup",
+      "lines": 62,
+      "description": "Popup markup. Module script only, no inline handlers.",
+      "keywords": [
+        "popup",
+        "html"
+      ]
+    },
+    {
+      "path": "src/popup/popup.js",
+      "kind": "source",
+      "lines": 294,
+      "description": "Popup controller: prefill, fetch, preview, PDF download, print handoff, clipboard, persisted options.",
+      "keywords": [
+        "popup",
+        "ui",
+        "download",
+        "blob url"
+      ]
+    },
+    {
+      "path": "src/viewer/viewer.css",
+      "kind": "style",
+      "lines": 80,
+      "description": "Viewer styles including print rules.",
+      "keywords": [
+        "viewer",
+        "css",
+        "print"
+      ]
+    },
+    {
+      "path": "src/viewer/viewer.html",
+      "kind": "markup",
+      "lines": 16,
+      "description": "Printable viewer markup.",
+      "keywords": [
+        "viewer",
+        "html"
+      ]
+    },
+    {
+      "path": "src/viewer/viewer.js",
+      "kind": "source",
+      "lines": 71,
+      "description": "Printable viewer. Reads a one-shot payload from session storage, deletes it, renders for Chrome print-to-PDF.",
+      "keywords": [
+        "viewer",
+        "print",
+        "unicode"
+      ]
+    },
+    {
+      "path": "test/pdf.test.js",
+      "kind": "test",
+      "lines": 126,
+      "description": "11 tests: transliteration, word wrap, PDF structural validity including byte-accurate xref offsets, pagination, filenames.",
+      "keywords": [
+        "tests",
+        "pdf",
+        "xref"
+      ]
+    },
+    {
+      "path": "test/transcript.test.js",
+      "kind": "test",
+      "lines": 93,
+      "description": "8 tests: json3 and XML parsing, empty bodies, timestamps, paragraph grouping, render options.",
+      "keywords": [
+        "tests",
+        "captions",
+        "formatting"
+      ]
+    },
+    {
+      "path": "test/youtube.test.js",
+      "kind": "test",
+      "lines": 117,
+      "description": "12 tests: URL shapes, hostname allowlist, watch-page parsing, fallbacks, parsed flag, track selection.",
+      "keywords": [
+        "tests",
+        "url",
+        "parsing"
+      ]
+    }
+  ]
+}

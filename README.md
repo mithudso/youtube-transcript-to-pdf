@@ -86,11 +86,15 @@ YouTube session is not attached.
 ```bash
 npm test              # 31 unit tests over the pure modules
 npm run lint:manifest # manifest + icon-dimension validation
-npm run check         # both
+npm run lint:docs     # documentation index validation
+npm run check         # all three
 npm run build         # dist/youtube-transcript-to-pdf-<version>.zip
 ```
 
 Tests run on the Node built-in test runner — no dependencies to install.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the reload matrix, debugging notes,
+and the bar for a pull request.
 
 ## Limitations
 
@@ -107,6 +111,26 @@ Tests run on the Node built-in test runner — no dependencies to install.
   `ytd-transcript-segment-renderer` to `transcript-segment-view-model`; the
   reader handles both and falls back to structural matching, but a future
   redesign may still require an update.
+
+## Documentation
+
+| Doc | Covers |
+| --- | --- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The proof-of-origin constraint, the two strategies, design decisions |
+| [docs/COMPONENTS.md](docs/COMPONENTS.md) | Every module, its exports and dependencies |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Setup, the reload matrix, debugging, troubleshooting |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Install, verify, upgrade, uninstall |
+| [docs/SECURITY.md](docs/SECURITY.md) | Permission justifications and threat model |
+| [docs/TESTING.md](docs/TESTING.md) | Automated coverage and the manual test plan |
+| [docs/known-issues.md](docs/known-issues.md) | Current limitations and what is not a bug |
+| [docs/onboarding.md](docs/onboarding.md) | A first-hour path through the codebase |
+| [docs/runbooks/](docs/runbooks/) | Fixing a YouTube markup change; cutting a release |
+
+## Contributing
+
+Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and
+the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per
+[.github/SECURITY.md](.github/SECURITY.md).
 
 ## License
 

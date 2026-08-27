@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+*.png binary
+*.zip binary
+*.pdf binary
+
+# Keep generated artifacts out of diffs and language statistics.
+docs/high_signal_file_index.json linguist-generated=true
+dist/** linguist-generated=true

@@ -1,0 +1,13 @@
+version: 2
+
+updates:
+  # The extension ships zero runtime dependencies, so GitHub Actions is the only
+  # ecosystem with anything to update. Add an `npm` block if that ever changes.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - dependencies

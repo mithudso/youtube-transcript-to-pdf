@@ -11,7 +11,24 @@
   "scripts": {
     "test": "node --test",
     "lint:manifest": "node scripts/validate-manifest.mjs",
-    "build": "node scripts/package-extension.mjs",
-    "check": "npm run lint:manifest && npm test"
-  }
+    "lint:docs": "node scripts/check-doc-indexes.mjs",
+    "check": "npm run lint:manifest && npm test && npm run lint:docs",
+    "build": "node scripts/package-extension.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mithudso/youtube-transcript-to-pdf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mithudso/youtube-transcript-to-pdf/issues"
+  },
+  "homepage": "https://github.com/mithudso/youtube-transcript-to-pdf#readme",
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "youtube",
+    "transcript",
+    "pdf",
+    "captions"
+  ]
 }
