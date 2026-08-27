@@ -7,6 +7,14 @@ dashboard will not let you submit until every required field is filled.
 **Budget about 45 minutes** for a first submission, most of it the one-time
 account setup. Review then takes anywhere from a few hours to a couple of weeks.
 
+> **This cannot be automated.** Chrome blocks all scripting of the extensions
+> gallery origin — both `chrome.google.com/webstore/*` and
+> `chromewebstore.google.com` return "The extensions gallery cannot be
+> scripted" to any extension that tries, including browser-automation tools.
+> That protection exists precisely so an extension cannot publish or install
+> things on your behalf, so there is no flag or permission that lifts it. Every
+> step below is done by hand.
+
 ---
 
 ## Before you start
