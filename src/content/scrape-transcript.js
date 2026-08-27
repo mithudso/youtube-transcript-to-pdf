@@ -40,29 +40,77 @@
     return predicate();
   };
 
-  /** @returns {HTMLElement|undefined} The "Show transcript" control, if present. */
+  /**
+   * Finds the control that OPENS the transcript panel.
+   *
+   * Matching is exact rather than a substring test, because the same panel also
+   * renders a "Close transcript" button and a generic "Transcript" chip. A
+   * substring match can select the close button and toggle the panel shut,
+   * which is indistinguishable from "the panel never opened".
+   *
+   * @returns {HTMLElement|undefined}
+   */
   const findShowButton = () =>
     [...document.querySelectorAll('button, tp-yt-paper-button')].find((el) => {
-      const label = `${el.textContent ?? ''} ${el.getAttribute('aria-label') ?? ''}`;
-      return /show transcript/i.test(label);
+      const text = (el.textContent ?? '').trim();
+      const label = (el.getAttribute('aria-label') ?? '').trim();
+      return /^show transcript$/i.test(text) || /^show transcript$/i.test(label);
     });
 
-  /** Opens the transcript panel, expanding the description first if needed. */
+  /**
+   * Whether YouTube currently reports the transcript panel as expanded.
+   *
+   * The panel populates asynchronously behind a spinner, so an expanded panel
+   * with no cues yet means "still loading", while a hidden panel means the
+   * click did not take.
+   *
+   * @returns {boolean}
+   */
+  const panelIsExpanded = () =>
+    [...document.querySelectorAll('ytd-engagement-panel-section-list-renderer')].some(
+      (panel) =>
+        /transcript/i.test(panel.getAttribute('target-id') ?? '') &&
+        panel.getAttribute('visibility') === 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED',
+    );
+
+  /**
+   * Clicks the control once and waits for cues, or for the panel to at least
+   * report itself expanded.
+   *
+   * @returns {Promise<boolean>} True once cues are present.
+   */
+  const attemptOpen = async () => {
+    let button = findShowButton();
+
+    if (!button) {
+      // Newer layouts bury the control behind the description's "...more" expander.
+      document.querySelector('#expand, tp-yt-paper-button#expand')?.click();
+      await waitFor(() => Boolean(findShowButton()), 4000);
+      button = findShowButton();
+    }
+
+    if (!button) return false;
+
+    button.click();
+    return waitFor(() => Boolean(document.querySelector(SEGMENT_SELECTOR)), 8000);
+  };
+
+  /** Opens the transcript panel, retrying once if the first click did not take. */
   const openPanel = async () => {
     if (document.querySelector(SEGMENT_SELECTOR)) return;
 
-    const button = findShowButton();
-    if (button) {
-      button.click();
+    if (await attemptOpen()) return;
+
+    // The panel reports itself expanded but has no cues: it is still loading
+    // behind a spinner, so wait rather than clicking again and toggling it shut.
+    if (panelIsExpanded()) {
       await waitFor(() => Boolean(document.querySelector(SEGMENT_SELECTOR)), 8000);
       return;
     }
 
-    // Newer layouts bury the control behind the description's "...more" expander.
-    document.querySelector('#expand, tp-yt-paper-button#expand')?.click();
-    await waitFor(() => Boolean(findShowButton()), 4000);
-    findShowButton()?.click();
-    await waitFor(() => Boolean(document.querySelector(SEGMENT_SELECTOR)), 8000);
+    // The click did not open anything. One retry covers a control that was not
+    // yet wired up when the first click landed.
+    await attemptOpen();
   };
 
   /**

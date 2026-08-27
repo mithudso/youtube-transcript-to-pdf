@@ -1,0 +1,28 @@
+{
+  "note": "Authored sample content used only to render Chrome Web Store screenshots. Not a real YouTube transcript; written for this repository so the store assets carry no third-party text. Recapture screenshots from a live install before submission.",
+  "title": "Photographing a Total Solar Eclipse",
+  "author": "Sample Channel",
+  "videoId": "SAMPLE00001",
+  "language": "en",
+  "isGenerated": false,
+  "source": "panel",
+  "segments": [
+    { "start": 2, "duration": 5, "text": "A total solar eclipse is one of the few events where the interesting part lasts a couple of minutes and the preparation takes a couple of months." },
+    { "start": 7, "duration": 6, "text": "So the first thing to settle is not your camera at all. It is where you are standing." },
+    { "start": 13, "duration": 6, "text": "Totality is only visible from a narrow band, and a few miles outside it you get a partial eclipse, which looks nothing like the photographs you have seen." },
+    { "start": 19, "duration": 5, "text": "Pick your location from the centre line, then give yourself somewhere to run to if the forecast turns." },
+    { "start": 26, "duration": 6, "text": "For the partial phases, before and after totality, you need a solar filter on the front of the lens." },
+    { "start": 32, "duration": 6, "text": "Not a filter behind the lens, and not sunglasses taped over it. A purpose-made solar filter, rated for direct viewing." },
+    { "start": 38, "duration": 5, "text": "The sun will destroy a sensor and it will destroy your eyes, and it will do both faster than you expect." },
+    { "start": 45, "duration": 7, "text": "Then, at the moment of totality, you take the filter off. This is the part people get wrong under pressure." },
+    { "start": 52, "duration": 6, "text": "The corona is roughly as bright as a full moon, so a filtered exposure gives you a black frame and you will not get a second chance." },
+    { "start": 60, "duration": 6, "text": "Bracket widely during totality. The corona has an enormous dynamic range, and the exposure that captures the inner corona will blow out nothing else." },
+    { "start": 66, "duration": 6, "text": "A range from about one four-thousandth of a second up to a full second, at a middling aperture, will cover most of what is there." },
+    { "start": 74, "duration": 6, "text": "Practice the whole sequence on an ordinary afternoon, with the filter, on the uneclipsed sun." },
+    { "start": 80, "duration": 5, "text": "Learn where the focus ring wants to sit, because autofocus will hunt and fail when the light drops." },
+    { "start": 85, "duration": 6, "text": "Tape the focus once you have it. Tape the zoom too, if your lens creeps." },
+    { "start": 93, "duration": 6, "text": "Finally, and this is the advice every eclipse photographer eventually gives: look up." },
+    { "start": 99, "duration": 6, "text": "Set the camera to fire on an intervalometer, step back from it, and actually watch the thing with your own eyes." },
+    { "start": 105, "duration": 6, "text": "The photograph is a souvenir. The two minutes are the event, and no sensor is going to record what it feels like when the sky closes." }
+  ]
+}

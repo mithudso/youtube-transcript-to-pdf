@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popup</title>
+    <style>
+:root {
+  --bg: #ffffff;
+  --fg: #10151b;
+  --muted: #5c6773;
+  --border: #dfe3e8;
+  --surface: #f5f7f9;
+  --accent: #c8202a;
+  --accent-fg: #ffffff;
+  --danger: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16191d;
+    --fg: #e7eaee;
+    --muted: #9aa4b0;
+    --border: #2e343b;
+    --surface: #1e2227;
+    --accent: #e0303b;
+    --accent-fg: #ffffff;
+    --danger: #ff8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 380px;
+  margin: 0;
+  padding: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.header { margin-bottom: 10px; }
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.form { display: flex; flex-direction: column; gap: 8px; }
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.row { display: flex; gap: 6px; }
+
+.input,
+.select {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+
+.input { flex: 1; }
+
+.input:focus-visible,
+.select:focus-visible,
+.button:focus-visible,
+.preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) { border-color: var(--muted); }
+
+.button:disabled { opacity: 0.5; cursor: default; }
+
+.button--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.select { padding: 4px 6px; max-width: 150px; }
+
+.status {
+  margin: 10px 0 0;
+  min-height: 1em;
+  color: var(--muted);
+}
+
+.status[data-tone="error"] { color: var(--danger); }
+
+.result { margin-top: 12px; }
+
+.meta { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+
+.meta__title { font-weight: 600; }
+
+.meta__sub { font-size: 11px; color: var(--muted); }
+
+.preview {
+  max-height: 180px;
+  margin: 0 0 10px;
+  padding: 9px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.actions { display: flex; gap: 6px; }
+
+
+:root {
+  --bg: #ffffff;
+  --fg: #10151b;
+  --muted: #5c6773;
+  --border: #dfe3e8;
+  --surface: #f5f7f9;
+  --accent: #c8202a;
+  --accent-fg: #ffffff;
+  --danger: #b3261e;
+  color-scheme: light;
+}
+body { width: 380px; margin: 0; }
+.preview { max-height: 260px; }
+
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <h1 class="title">Transcript to PDF</h1>
+    </header>
+
+    <form class="form">
+      <label class="label" for="url">YouTube URL or video ID</label>
+      <div class="row">
+        <input id="url" class="input" type="text" value="https://www.youtube.com/watch?v=SAMPLE00001" />
+        <button class="button button--primary" type="button">Get</button>
+      </div>
+
+      <div class="options">
+        <label class="option">
+          <select class="select">
+          <option selected>English</option>
+          <option>Deutsch</option>
+          <option>Español (Latinoamérica)</option>
+          <option>日本語</option>
+          </select>
+        </label>
+        <label class="option"><input type="checkbox" checked /><span>Timestamps</span></label>
+        <label class="option"><input type="checkbox" checked /><span>Paragraphs</span></label>
+      </div>
+    </form>
+
+    <p class="status"></p>
+
+    <section class="result">
+      <div class="meta">
+        <span class="meta__title">Photographing a Total Solar Eclipse</span>
+        <span class="meta__sub">Sample Channel · 17 lines · read from transcript panel</span>
+      </div>
+      <pre class="preview">[0:02] A total solar eclipse is one of the few events where the interesting part lasts a couple of minutes and the preparation takes a couple of months. So the first thing to settle is not your camera at all. It is where you are standing. Totality is only visible from a narrow band, and a few miles outside it you get a partial eclipse, which looks nothing like the photographs you have seen.
+
+[0:19] Pick your location from the centre line, then give yourself somewhere to run to if the forecast turns. For the partial phases, before and after totality, you need a solar filter on the front of the lens. Not a filter behind the lens, and not sunglasses taped over it. A purpose-made solar filter, rated for direct viewing.
+
+[0:38] The sun will destroy a sensor and it will destroy your eyes, and it will do both faster than you expect. Then, at the moment of totality, you take the filter off. This is the part people get wrong under pressure. The corona is roughly as bright as a full moon, so a filtered exposure gives you a black frame and you will not get a second chance.
+
+[1:00] Bracket widely during totality. The corona has an enormous dynamic range, and the exposure that captures the inner corona will blow out nothing else. A range from about one four-thousandth of a second up to a full second, at a middling aperture, will cover most of what is there.
+
+[1:14] Practice the whole sequence on an ordinary afternoon, with the filter, on the uneclipsed sun. Learn where the focus ring wants to sit, because autofocus will hunt and fail when the light drops. Tape the focus once you have it. Tape the zoom too, if your lens creeps.
+
+[1:33] Finally, and this is the advice every eclipse photographer eventually gives: look up. Set the camera to fire on an intervalometer, step back from it, and actually watch the thing with your own eyes. The photograph is a souvenir. The two minutes are the event, and no sensor is going to record what it feels like when the sky closes.</pre>
+      <div class="actions">
+        <button class="button button--primary" type="button">Download PDF</button>
+        <button class="button" type="button">Print…</button>
+        <button class="button" type="button">Copy</button>
+      </div>
+    </section>
+  </body>
+</html>

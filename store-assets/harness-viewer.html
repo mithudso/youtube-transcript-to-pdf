@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Viewer</title>
+    <style>
+:root { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: #eceff1;
+  color: #10151b;
+  font: 15px/1.6 Georgia, "Iowan Old Style", "Times New Roman", serif;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #d4d9dd;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.print-button {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #c8202a;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hint { color: #5c6773; }
+
+.document {
+  max-width: 42em;
+  margin: 24px auto 60px;
+  padding: 48px 56px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(16 21 27 / 12%);
+}
+
+.document h1 {
+  margin: 0 0 4px;
+  font-size: 1.6em;
+  line-height: 1.25;
+}
+
+.document .subtitle {
+  margin: 0;
+  color: #5c6773;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.8em;
+}
+
+.document .block { margin: 1.1em 0 0; }
+
+.document .timestamp {
+  display: block;
+  margin-bottom: 2px;
+  color: #c8202a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72em;
+  font-weight: 700;
+}
+
+.document p { margin: 0; }
+
+@media print {
+  body { background: #ffffff; }
+  .no-print { display: none; }
+  .document {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .block { break-inside: avoid; }
+}
+
+
+    </style>
+  </head>
+  <body>
+    <div class="toolbar no-print">
+      <button class="print-button" type="button">Save as PDF / Print</button>
+      <span class="hint">Choose “Save as PDF” as the destination.</span>
+    </div>
+    <main class="document">
+      <h1>Photographing a Total Solar Eclipse</h1>
+      <p class="subtitle">Sample Channel</p>
+      <p class="subtitle">https://www.youtube.com/watch?v=SAMPLE00001</p>
+      <p class="subtitle">Language: en · 17 caption lines</p>
+      <div class="block">
+        <span class="timestamp">[0:02]</span>
+        <p>A total solar eclipse is one of the few events where the interesting part lasts a couple of minutes and the preparation takes a couple of months. So the first thing to settle is not your camera at all. It is where you are standing. Totality is only visible from a narrow band, and a few miles outside it you get a partial eclipse, which looks nothing like the photographs you have seen.</p>
+      </div>
+      <div class="block">
+        <span class="timestamp">[0:19]</span>
+        <p>Pick your location from the centre line, then give yourself somewhere to run to if the forecast turns. For the partial phases, before and after totality, you need a solar filter on the front of the lens. Not a filter behind the lens, and not sunglasses taped over it. A purpose-made solar filter, rated for direct viewing.</p>
+      </div>
+      <div class="block">
+        <span class="timestamp">[0:38]</span>
+        <p>The sun will destroy a sensor and it will destroy your eyes, and it will do both faster than you expect. Then, at the moment of totality, you take the filter off. This is the part people get wrong under pressure. The corona is roughly as bright as a full moon, so a filtered exposure gives you a black frame and you will not get a second chance.</p>
+      </div>
+      <div class="block">
+        <span class="timestamp">[1:00]</span>
+        <p>Bracket widely during totality. The corona has an enormous dynamic range, and the exposure that captures the inner corona will blow out nothing else. A range from about one four-thousandth of a second up to a full second, at a middling aperture, will cover most of what is there.</p>
+      </div>
+      <div class="block">
+        <span class="timestamp">[1:14]</span>
+        <p>Practice the whole sequence on an ordinary afternoon, with the filter, on the uneclipsed sun. Learn where the focus ring wants to sit, because autofocus will hunt and fail when the light drops. Tape the focus once you have it. Tape the zoom too, if your lens creeps.</p>
+      </div>
+      <div class="block">
+        <span class="timestamp">[1:33]</span>
+        <p>Finally, and this is the advice every eclipse photographer eventually gives: look up. Set the camera to fire on an intervalometer, step back from it, and actually watch the thing with your own eyes. The photograph is a souvenir. The two minutes are the event, and no sensor is going to record what it feels like when the sky closes.</p>
+      </div>
+    </main>
+  </body>
+</html>
