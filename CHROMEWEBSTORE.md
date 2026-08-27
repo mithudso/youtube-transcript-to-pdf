@@ -111,6 +111,10 @@ taken with a capture overlay active and read muted.
 
 ## Permissions Justification
 
+Plain-text versions ready to paste into the dashboard are in
+[Paste-ready permission justifications](#paste-ready-permission-justifications)
+below. Use those, not this table — the pipes and backticks here are markdown.
+
 | Permission | Type | Justification |
 |------------|------|---------------|
 | `tabs` | permissions | Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs are used in memory only and are never stored or transmitted. |
@@ -124,6 +128,35 @@ The extension deliberately does **not** request `<all_urls>`, `cookies`,
 `webRequest`, `history`, `identity`, or `nativeMessaging`. A `youtu.be` host
 permission was removed during development once it was confirmed that all URLs
 are normalised to `youtube.com` before any request is made.
+
+## Paste-ready permission justifications
+
+The dashboard's justification fields are **plain text**. Paste from here, not
+from the table above — the table's pipes and backticks are markdown and show up
+literally in the form.
+
+There is one box per `permissions` entry, and a **single combined box** for all
+host permissions.
+
+### tabs
+
+Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs are used in memory only and are never stored or transmitted.
+
+### scripting
+
+Injects a single content script into a YouTube video tab, on demand, to read the transcript panel. This is required because YouTube refuses direct caption downloads that lack a browser-issued token, so the only reliable source is the panel YouTube renders itself. The script is not declared in the manifest and never runs unless the user has asked for a transcript.
+
+### storage
+
+Stores two booleans - whether timestamps and paragraph grouping are enabled - so the user's formatting choices survive closing the popup. Also used to pass the transcript from the popup to the printable page, where it is deleted immediately after rendering. Storage is local only; chrome.storage.sync is not used, so nothing is uploaded to a Google account.
+
+### downloads
+
+Saves the generated PDF to the user's downloads folder. This is the extension's primary output and there is no other way to write the file.
+
+### Host permission (one box, covers both hosts)
+
+The extension fetches the YouTube watch page for the video the user asks about, which carries the title, the channel, and the list of available caption tracks, and then fetches the caption track itself. That same page is where the transcript reader is injected when YouTube refuses a direct caption download. www.youtube.com is the desktop host that serves video pages. m.youtube.com is requested only so that a tab the user already has open on the mobile host can be reused instead of opening a duplicate. No other host is requested, and the extension cannot reach any other site.
 
 ## Privacy & Data Use
 
@@ -187,9 +220,13 @@ Verified live and serving the policy (HTTP 200) on 2026-08-27. Source:
 
 ## Version History
 
+**Store-assigned item ID**: `jpjnpjipphcgjgmabbgenoaepojffkle`
+
+This differs from the unpacked development ID and is permanent for this listing.
+
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-08-27 | Initial listing prepared. Not yet submitted. | Draft |
+| 1.0.0 | 2026-08-27 | Initial listing. Package uploaded, listing and privacy tabs filled. | Draft |
 
 ## Review Notes
 
