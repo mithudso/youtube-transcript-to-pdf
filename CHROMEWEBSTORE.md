@@ -105,10 +105,9 @@ transcript text is authored sample content
 (`store-assets/sample-transcript.json`), written for this repository so the
 assets carry no third-party material.
 
-One quality nit on screenshot 1: the source recording was made with a
-screen-capture overlay active, so the popup's colours read slightly muted
-against the real UI. It is authentic, just dim. A clean re-capture of the
-loaded popup would be a small improvement; it is not a submission blocker.
+Screenshot 1 was recaptured from a clean screenshot rather than the screen
+recording, so the popup's colours match the real UI — the earlier frame was
+taken with a capture overlay active and read muted.
 
 ## Permissions Justification
 
