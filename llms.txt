@@ -1,0 +1,32 @@
+<!-- generated: llms-suite 1.0, 2026-09-25; verified-as-of 2026-09-25; local paths rewritten to repo-relative -->
+
+# Transcript to PDF for YouTube
+
+> Manifest V3 Chrome extension that fetches a YouTube video's transcript from its URL and exports it as a formatted PDF, entirely in the browser with no server, API key or third-party service.
+
+## Start here
+
+- [README.md](README.md): Features, install, how transcripts are fetched, architecture table, permissions, limitations
+- [docs/onboarding.md](docs/onboarding.md): A first-hour path through the codebase
+- [docs/COMPONENTS.md](docs/COMPONENTS.md): Every module, its exports and dependencies
+
+## Design and safety
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): The proof-of-origin constraint, the two strategies, design decisions
+- [docs/SECURITY.md](docs/SECURITY.md): Permission justifications and threat model
+- [PRIVACY.md](PRIVACY.md): Privacy policy: no data collected, stored or transmitted
+- [docs/external-calls.md](docs/external-calls.md): Every call that leaves the browser
+
+## Working in the repo
+
+- [CLAUDE.md](CLAUDE.md): Rules for agents working in this repository
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): Setup, reload matrix, debugging
+- [docs/TESTING.md](docs/TESTING.md): Automated coverage and the manual test plan
+- [docs/known-issues.md](docs/known-issues.md): Current limitations and what is not a bug
+- [CONTRIBUTING.md](CONTRIBUTING.md): Bar for a pull request
+
+## Companion files
+
+- [llms-full.txt](llms-full.txt): concatenated key docs
+- [llms-small.txt](llms-small.txt): condensed summary
+- [llms-facts.txt](llms-facts.txt): sourced one-line facts

@@ -1,0 +1,9 @@
+<!-- generated: llms-suite 1.0, 2026-09-25; verified-as-of 2026-09-25; local paths rewritten to repo-relative -->
+
+# Transcript to PDF for YouTube (small)
+
+Transcript to PDF for YouTube is a Manifest V3 Chrome extension (v1.0.0, MIT, Chrome 116+). Paste a YouTube URL (watch, youtu.be, shorts, embed, live, or a bare 11-character ID); it fetches the transcript and offers Download PDF (built-in dependency-free writer), Print (Chrome renderer, for non-Latin scripts) and Copy.
+
+Because YouTube requires a browser-minted proof-of-origin token, a plain `timedtext` request returns HTTP 200 with an empty body. The service worker (`src/background/service-worker.js`) tries direct download first, then reads YouTube's own transcript panel via an injected content script (`src/content/scrape-transcript.js`). Pure modules in `src/lib/` (`youtube.js`, `transcript.js`, `pdf.js`) have no chrome.* dependency and are unit-tested.
+
+Permissions: tabs, scripting, storage, downloads, and host access to youtube.com only. No analytics or remote code; requests use credentials omitted. Limits: Latin-1 only in Download PDF, no speech-to-text, private/age-restricted videos rejected. Verify with `npm run check`.
