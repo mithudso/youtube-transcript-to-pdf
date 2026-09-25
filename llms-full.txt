@@ -1,0 +1,899 @@
+<!-- generated: llms-suite 1.0, 2026-09-25; verified-as-of 2026-09-25; local paths rewritten to repo-relative -->
+
+---
+title: README.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/README.md
+---
+
+# Transcript to PDF for YouTube
+
+A Manifest V3 Chrome extension that takes a YouTube URL, pulls the video's
+transcript, and exports it as a formatted PDF — no server, no API key, no
+third-party service. Everything runs locally in the browser.
+
+## Features
+
+- Paste any YouTube URL — `watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`,
+  `/live/`, or a bare 11-character video ID. The current tab's video is
+  detected automatically.
+- Picks a caption track by language, including auto-generated tracks.
+- Formats output with timestamps and readable paragraphs (both optional),
+  grouping caption cues on sentence boundaries and speech pauses.
+- **Download PDF** writes a real `.pdf` locally with a built-in, dependency-free
+  PDF writer.
+- **Print…** renders through Chrome instead, for transcripts in scripts the
+  built-in writer cannot encode (see [Limitations](#limitations)).
+- **Copy** puts the formatted text on the clipboard.
+
+## Install (unpacked)
+
+```bash
+git clone https://github.com/<you>/youtube-transcript-to-pdf.git
+cd youtube-transcript-to-pdf
+```
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and select this directory.
+4. Pin the extension and click it on any YouTube video.
+
+## How it gets the transcript
+
+Since 2024, YouTube requires a browser-minted proof-of-origin token on caption
+downloads. A plain request to the `timedtext` endpoint — even one carrying the
+user's cookies — comes back HTTP 200 with an **empty body**. The extension
+therefore tries two strategies in order:
+
+1. **Direct download.** Reads the caption track list off the watch page and
+   fetches `timedtext`. Silent and instant when YouTube allows it.
+2. **Transcript panel.** Loads the watch page in a tab — reusing one already
+   open on that video, otherwise opening a background tab it closes again —
+   and reads YouTube's own transcript panel, which is rendered by a session
+   that holds a valid token.
+
+Strategy 2 is what works most of the time. It is slower and briefly opens a
+tab, which is the price of YouTube's token requirement.
+
+## Architecture
+
+| Path | Role |
+| --- | --- |
+| `manifest.json` | MV3 manifest: permissions, service worker, popup, icons. |
+| `src/background/service-worker.js` | Owns all network and tab work; runs the two strategies. |
+| `src/content/scrape-transcript.js` | Injected on demand; reads the transcript panel. |
+| `src/lib/youtube.js` | URL parsing and watch-page scraping. Pure, unit-tested. |
+| `src/lib/transcript.js` | Caption parsing (`json3` + legacy XML) and formatting. Pure. |
+| `src/lib/pdf.js` | Dependency-free PDF writer. Pure. |
+| `src/popup/` | Popup UI. Builds the PDF and triggers the download. |
+| `src/viewer/` | Printable page for the Chrome "Save as PDF" path. |
+
+The popup is a thin client: it sends one message and renders the reply, so
+closing it mid-fetch cannot abort the work. The service worker holds no state
+in module scope, since MV3 terminates it after roughly 30 seconds idle.
+
+`src/lib/` has no `chrome.*` dependency, which is what makes it testable under
+plain Node.
+
+## Permissions
+
+| Permission | Why |
+| --- | --- |
+| `tabs` | Read the active tab's URL to prefill the input, and find an open tab showing the requested video. |
+| `scripting` | Inject the transcript-panel reader when the direct download is blocked. |
+| `storage` | Remember formatting preferences; pass the transcript to the printable viewer. |
+| `downloads` | Save the generated PDF. |
+| `host_permissions` on `youtube.com` | Fetch watch pages and caption tracks. Scoped to YouTube only. |
+
+No analytics, no telemetry, no remote code. Transcript data never leaves the
+machine. Requests to YouTube are sent with `credentials: 'omit'`, so the user's
+YouTube session is not attached.
+
+## Development
+
+```bash
+npm test              # 31 unit tests over the pure modules
+npm run lint:manifest # manifest + icon-dimension validation
+npm run lint:docs     # documentation index validation
+npm run check         # all three
+npm run build         # dist/youtube-transcript-to-pdf-<version>.zip
+```
+
+Tests run on the Node built-in test runner — no dependencies to install.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the reload matrix, debugging notes,
+and the bar for a pull request.
+
+## Limitations
+
+- **Non-Latin scripts in `Download PDF`.** The built-in writer uses the standard
+  Helvetica fonts, which are Latin-1 only. Typographic characters are
+  transliterated (`—` → `--`, `"` → `"`); anything outside Latin-1 becomes `?`.
+  Use **Print…** for CJK, Cyrillic, Arabic, and similar — Chrome's renderer
+  handles them correctly.
+- **Videos without captions** cannot produce a transcript. There is no
+  speech-to-text fallback.
+- **Age-restricted, private, and members-only videos** are rejected by YouTube
+  before captions are reachable.
+- **The transcript panel's markup is not a public API.** YouTube migrated from
+  `ytd-transcript-segment-renderer` to `transcript-segment-view-model`; the
+  reader handles both and falls back to structural matching, but a future
+  redesign may still require an update.
+
+## Documentation
+
+| Doc | Covers |
+| --- | --- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The proof-of-origin constraint, the two strategies, design decisions |
+| [docs/COMPONENTS.md](docs/COMPONENTS.md) | Every module, its exports and dependencies |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Setup, the reload matrix, debugging, troubleshooting |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Install, verify, upgrade, uninstall |
+| [docs/SECURITY.md](docs/SECURITY.md) | Permission justifications and threat model |
+| [docs/TESTING.md](docs/TESTING.md) | Automated coverage and the manual test plan |
+| [docs/known-issues.md](docs/known-issues.md) | Current limitations and what is not a bug |
+| [docs/onboarding.md](docs/onboarding.md) | A first-hour path through the codebase |
+| [docs/runbooks/](docs/runbooks/) | Fixing a YouTube markup change; cutting a release |
+
+## Privacy
+
+No data is collected, stored, or transmitted. The only host the extension can
+reach is `youtube.com`, and requests are made without your cookies attached.
+Full policy: [PRIVACY.md](PRIVACY.md)
+([published copy](https://mithudso.github.io/youtube-transcript-to-pdf/PRIVACY.html)).
+
+## Contributing
+
+Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and
+the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per
+[.github/SECURITY.md](.github/SECURITY.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+title: CLAUDE.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/CLAUDE.md
+---
+
+# CLAUDE.md
+
+Guidance for Claude Code working in this repository.
+
+## What this is
+
+A Manifest V3 Chrome extension that turns a YouTube URL into a PDF transcript.
+No server, no dependencies, no build step for the extension itself — the files
+in the repo are the files Chrome loads.
+
+## Commands
+
+```bash
+npm run check          # manifest validation + unit tests + doc index validation
+npm test               # 31 unit tests, Node built-in runner
+npm run lint:manifest  # manifest schema, file references, icon dimensions
+npm run lint:docs      # every path in the doc indexes still exists
+npm run build          # dist/youtube-transcript-to-pdf-<version>.zip
+```
+
+There is no install step. Zero dependencies, on purpose.
+
+## Layout
+
+| Path | Role |
+| --- | --- |
+| `manifest.json` | MV3 manifest — permissions, service worker, popup, icons |
+| `src/lib/` | Pure modules. **No `chrome.*` here.** Unit-tested under plain Node |
+| `src/background/service-worker.js` | All network and tab work |
+| `src/content/scrape-transcript.js` | Injected on demand; reads the transcript panel |
+| `src/popup/` | Popup UI; builds the PDF and starts the download |
+| `src/viewer/` | Printable page for the Chrome "Save as PDF" path |
+| `scripts/` | Manifest validation, doc index validation, packaging |
+| `test/` | Unit tests for `src/lib/` |
+
+## Rules that matter here
+
+1. **`src/lib/` must not import `chrome.*`.** That boundary is the only reason
+   those modules are testable. Extension APIs go in the service worker, popup,
+   or a content script.
+2. **Manifest V3 only.** `chrome.action`, not `chrome.browserAction`.
+   `chrome.scripting`, not `chrome.tabs.executeScript`. No inline scripts or
+   inline event handlers in HTML — the extension CSP blocks them.
+3. **The service worker holds no state in module scope.** MV3 terminates it
+   after roughly 30 seconds idle. Anything that must survive goes in
+   `chrome.storage`.
+4. **Transcript text is untrusted input from a web page.** Render it with
+   `textContent`, never `innerHTML`.
+5. **Every icon path in the manifest must resolve to a real PNG of exactly the
+   declared size.** `npm run lint:manifest` enforces this; a mismatch makes
+   Chrome refuse to load the extension.
+6. **Adding a permission requires a written justification** in the PR and a row
+   in `docs/SECURITY.md`.
+7. **Async/await everywhere.** No `.then()` chains. A `chrome.runtime.onMessage`
+   listener doing async work must `return true`.
+
+## Verify before claiming done
+
+Run `npm run check` and paste the result. For anything touching the `chrome.*`
+layer — which no test covers — load the extension unpacked and exercise the
+path against a real video before saying it works.
+
+## The known-fragile part
+
+`src/content/scrape-transcript.js` reads YouTube's transcript panel. That
+markup is not a public API and has already changed once. If transcripts stop
+resolving, start there:
+[docs/runbooks/transcript-panel-broke.md](docs/runbooks/transcript-panel-broke.md).
+
+## Further reading
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — why the two-strategy design exists
+- [docs/COMPONENTS.md](docs/COMPONENTS.md) — every module and its public surface
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — setup, debugging, troubleshooting
+- [docs/TESTING.md](docs/TESTING.md) — what is covered and what is not
+- [docs/known-issues.md](docs/known-issues.md) — current limitations
+
+---
+title: docs/ARCHITECTURE.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/docs/ARCHITECTURE.md
+---
+
+# Architecture
+
+## System context
+
+```
+┌──────────┐   URL / options    ┌───────────────┐   HTTPS    ┌──────────────┐
+│  Popup   │ ─────────────────▶ │ Service       │ ─────────▶ │  youtube.com │
+│  (UI)    │ ◀───────────────── │ worker        │ ◀───────── │              │
+└────┬─────┘   transcript       └──────┬────────┘            └──────────────┘
+     │                                 │
+     │ PDF bytes                       │ chrome.scripting.executeScript
+     ▼                                 ▼
+┌──────────┐                    ┌───────────────┐
+│ Downloads│                    │ Content script│  reads YouTube's own
+│  (disk)  │                    │ in a YT tab   │  transcript panel
+└──────────┘                    └───────────────┘
+```
+
+Nothing leaves the machine except requests to `youtube.com`. There is no
+backend, no analytics endpoint, and no third-party service.
+
+## The central constraint
+
+Since 2024, YouTube requires a **proof-of-origin token**, minted by its own
+bot-detection machinery in a real browser session, on caption downloads. A
+plain request to the `timedtext` endpoint — including one carrying the user's
+cookies — returns **HTTP 200 with an empty body**. Not an error status; an
+empty success. This was verified directly while building the extension, against
+both `timedtext` and the `youtubei/v1/player` innertube endpoint.
+
+Every design decision below follows from that.
+
+## Two strategies, tried in order
+
+**Strategy 1 — direct download.** Fetch the watch page, read the caption track
+list out of `ytInitialPlayerResponse`, request the track's signed `timedtext`
+URL. Instant and silent when it works. Often it does not.
+
+**Strategy 2 — transcript panel.** Load the watch page in a browser tab, inject
+a content script, and read YouTube's own rendered transcript panel. The panel
+is populated by a page session that already holds a valid token, which sidesteps
+the problem entirely. The extension reuses a tab already open on that video; if
+there is none, it opens one in the background and closes it afterwards.
+
+Strategy 2 is what carries most requests. It is slower and briefly opens a tab —
+the cost of YouTube's token requirement.
+
+## Why the popup is a thin client
+
+All network and tab work lives in the service worker. The popup sends one
+message and renders the reply. A Chrome popup is destroyed the moment it loses
+focus, so any work owned by the popup would be cancelled mid-flight. Moving it
+to the service worker makes the fetch survive a closed popup.
+
+The one thing the popup keeps is **PDF construction and the download call**.
+That is deliberate: `URL.createObjectURL` does not exist in an MV3 service
+worker, so the blob has to be minted in a document context. Because a blob URL
+dies with the document that created it, the download uses `saveAs: false` and
+starts writing immediately rather than waiting on a save dialog the user might
+leave open long enough for the popup to close.
+
+## Why `src/lib/` has no `chrome.*`
+
+`youtube.js`, `transcript.js`, and `pdf.js` are pure. They take strings and
+return data. That makes them runnable — and therefore testable — under plain
+Node, which is where all 31 tests live. Everything that needs an extension API
+sits in the service worker, popup, content script, or viewer, none of which are
+unit-tested.
+
+This boundary is the single most important structural rule in the codebase.
+
+## Data flow, end to end
+
+1. Popup reads the active tab's URL, extracts a video id, prefills the input.
+2. User submits. Popup posts `FETCH_TRANSCRIPT` to the service worker.
+3. Worker fetches the watch page with `credentials: 'omit'` and parses it for
+   title, author, playability, and caption tracks.
+4. Worker picks a track by language, then runs strategy 1, then strategy 2.
+5. Worker replies with segments plus metadata, including which strategy won.
+6. Popup groups segments into paragraphs, renders a preview, and holds the
+   transcript in memory for the popup's lifetime.
+7. **Download PDF** builds PDF bytes in the popup and hands a blob URL to
+   `chrome.downloads`.
+   **Print** stashes the blocks in `chrome.storage.session`, opens the viewer,
+   and lets Chrome render.
+
+## The PDF writer
+
+`src/lib/pdf.js` emits PDF 1.4 by hand: object table, page tree, content
+streams, and a cross-reference table whose byte offsets are verified by test.
+Text uses the two standard Type 1 fonts, so nothing is embedded, and word wrap
+uses the real Helvetica AFM advance widths.
+
+The cost is encoding. Standard-font text is WinAnsi, meaning Latin-1: typographic
+characters are transliterated, and anything outside Latin-1 becomes `?`. The
+**Print** path exists to cover that gap — Chrome's renderer handles every script
+correctly, at the cost of a print dialog.
+
+Writing a PDF by hand rather than vendoring a library keeps the extension at
+zero dependencies, which in turn means no supply-chain surface in something that
+holds `youtube.com` host permissions.
+
+## Decisions
+
+**ADR-001 — Hand-written PDF writer instead of jsPDF or pdf-lib.**
+*Accepted.* A bundled PDF library is hundreds of kilobytes of third-party code
+inside an extension with host permissions. Transcripts are plain text with no
+images, tables, or vector art, so almost none of a general library is used. The
+trade-off is Latin-1-only output, mitigated by the print path.
+
+**ADR-002 — Transcript panel over reverse-engineering the token.**
+*Accepted.* Deriving a proof-of-origin token means running YouTube's BotGuard,
+which is obfuscated, changes without notice, and reads as evasion. Reading the
+panel that YouTube already rendered for the user is stable in intent even when
+the markup shifts, and it fails visibly rather than silently.
+
+**ADR-003 — `credentials: 'omit'` on every request.**
+*Accepted.* The extension never needs the user's YouTube session. Omitting
+cookies means it cannot act as the user, and it drops the whole class of
+concerns about an extension with access to a logged-in session. It costs
+nothing, since cookies did not unlock captions anyway.
+
+**ADR-004 — Zero dependencies.**
+*Accepted.* Keeps CI install-free, removes supply-chain risk from a
+host-permissioned extension, and keeps the review surface small. The cost is
+hand-written PDF generation and no lint framework.
+
+---
+title: docs/COMPONENTS.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/docs/COMPONENTS.md
+---
+
+# Components
+
+Every module, what it owns, and what it exposes.
+
+## `src/lib/youtube.js` — URL and watch-page parsing
+
+Pure. No `chrome.*`, no network.
+
+| Export | Signature | Notes |
+| --- | --- | --- |
+| `parseVideoId` | `(input: string) => string \| null` | Accepts `watch?v=`, `youtu.be/`, `/shorts/`, `/embed/`, `/live/`, `/v/`, and a bare 11-character id. Host is checked against an allowlist, so `youtube.com.evil.test` is rejected. |
+| `watchUrl` | `(videoId: string) => string` | Canonical desktop watch URL. |
+| `extractJsonVar` | `(html: string, varName: string) => object \| null` | Pulls a JSON object assigned to a named variable. `varName` is regex-escaped. |
+| `parseWatchPage` | `(html: string) => {tracks, title, author, isPlayable, reason, parsed}` | `parsed` is false when neither the player blob nor a caption-track array was found — a consent wall rather than a captionless video. |
+| `pickTrack` | `(tracks, preferredLanguage?) => CaptionTrack \| null` | Exact language, then base language (`en` matches `en-GB`), then a human-authored track, then anything. |
+
+Brace matching is done by `findBalancedEnd`, a string-aware scanner, because
+YouTube's inline JSON is not delimited in any way a regex can bound reliably.
+
+**Depends on:** nothing.
+
+## `src/lib/transcript.js` — caption parsing and formatting
+
+Pure. Handles both caption payload formats.
+
+| Export | Signature | Notes |
+| --- | --- | --- |
+| `parseJson3` | `(body: string) => Segment[]` | `fmt=json3`. Drops the empty roll-up events auto-generated tracks emit. |
+| `parseTimedTextXml` | `(body: string) => Segment[]` | Legacy XML. Regex-based, not DOMParser, because service workers have no DOMParser. Decodes the double-escaped entities the feed uses. |
+| `parseCaptions` | `(body: string) => Segment[]` | Dispatches on the first non-space character. |
+| `formatTimestamp` | `(seconds: number) => string` | `M:SS`, or `H:MM:SS` past an hour. |
+| `groupIntoParagraphs` | `(segments, options?) => Array<{start, text}>` | Merges cues until a character cap, a sentence end near that cap, or a speech gap over 2.5s. |
+| `renderText` | `(segments, options?) => string` | Plain text for the preview and clipboard. |
+
+`Segment` is `{start: number, duration: number, text: string}`.
+
+**Depends on:** nothing.
+
+## `src/lib/pdf.js` — PDF writer
+
+Pure. Emits PDF 1.4 bytes with no library.
+
+| Export | Signature | Notes |
+| --- | --- | --- |
+| `toWinAnsi` | `(text: string) => string` | Maps to Latin-1: transliterates typographic characters, drops zero-width ones, replaces the rest with `?`. |
+| `wrapText` | `(text, maxWidth, fontSize, bold?) => string[]` | Greedy wrap on real Helvetica AFM advance widths. Words wider than the line box are split mid-word. |
+| `buildTranscriptPdf` | `(options) => Uint8Array` | Title block, optional grey subtitles, then timestamped paragraphs, paginated. |
+| `toSafeFilename` | `(title: string) => string` | Strips what `chrome.downloads` rejects: path separators, reserved characters, control characters, relative segments, leading and trailing dots. |
+
+Internals worth knowing: `HELVETICA_WIDTHS` is 95 entries covering code points
+32–126; bold is approximated with a 1.08 factor rather than a second table.
+`assemblePdf` lays out objects as catalog, page tree, two fonts, info, then a
+page and content-stream pair per page, and computes cross-reference offsets from
+running byte position.
+
+**Depends on:** nothing.
+
+## `src/background/service-worker.js` — network and tabs
+
+Owns every outbound request and every tab interaction. ES module
+(`"type": "module"` in the manifest). Holds no state in module scope, because
+MV3 terminates it when idle.
+
+**Message contract**
+
+Request `{type: 'FETCH_TRANSCRIPT', url: string, language?: string}`, reply
+`{ok: true, data: Transcript}` or `{ok: false, error: {code, message}}`.
+
+`Transcript` is `{videoId, title, author, language, isGenerated, source,
+availableLanguages, segments}` where `source` is `'timedtext'` or `'panel'`.
+
+**Error codes:** `bad-url`, `watch-page`, `unavailable`, `unreadable`,
+`no-captions`, `blocked`, `timeout`, `network`, `unknown`.
+
+**Key functions:** `fetchWithTimeout` (15s abort, `credentials: 'omit'`),
+`loadWatchPage`, `loadTrackDirectly` (strategy 1), `readFromTranscriptPanel`
+(strategy 2 — reuses an open tab or opens and closes a background one),
+`waitForTabLoad`, `getTranscript` (orchestrates).
+
+**Depends on:** `src/lib/youtube.js`, `src/lib/transcript.js`,
+`chrome.tabs`, `chrome.scripting`, `chrome.runtime`.
+
+## `src/content/scrape-transcript.js` — transcript panel reader
+
+Injected on demand by `chrome.scripting.executeScript`. Not a declared content
+script, so it never runs unless the extension needs it. Resolves to a
+`Segment[]`, which becomes `InjectionResult.result`.
+
+Opens the panel by finding a "Show transcript" control, expanding the
+description first if the control is hidden behind it, then polls for segments
+rather than sleeping a fixed interval.
+
+Reads both markup generations: the older `ytd-transcript-segment-renderer` with
+stable `.segment-timestamp` and `.segment-text` classes, and the current
+`transcript-segment-view-model` whose classes are obfuscated. For the latter it
+matches structurally — the timestamp by its shape, the caption by its
+attributed-string span — and ignores the screen-reader duration label sitting
+between them.
+
+Cue durations are derived from the gap to the next cue, since the panel does not
+expose them.
+
+**Depends on:** the DOM. **This is the most fragile file in the repo.**
+
+## `src/popup/` — the UI
+
+`popup.html` / `popup.css` / `popup.js`. Module script, no inline handlers.
+
+Prefills from the active tab, sends one message, renders a preview, and offers
+three actions: **Download PDF** (builds bytes locally, revokes the blob URL on
+the download's completion event), **Print** (stashes blocks in
+`chrome.storage.session` and opens the viewer), **Copy**.
+
+Formatting preferences persist in `chrome.storage.local` under `formatOptions`.
+All rendering uses `textContent`.
+
+**Depends on:** all three `src/lib/` modules, `chrome.runtime`, `chrome.tabs`,
+`chrome.storage`, `chrome.downloads`.
+
+## `src/viewer/` — printable page
+
+`viewer.html` / `viewer.css` / `viewer.js`. Reads a one-shot payload from
+`chrome.storage.session`, deletes it, renders, and offers a print button. Print
+styles strip the toolbar and page chrome. This is the path that handles scripts
+the Latin-1 PDF writer cannot encode.
+
+**Depends on:** `chrome.storage.session`.
+
+## `scripts/`
+
+| File | Role |
+| --- | --- |
+| `validate-manifest.mjs` | Manifest V3 shape, referenced files exist, icon PNG signature and real pixel dimensions match their declared size, no V2 keys, no `<all_urls>`. |
+| `check-doc-indexes.mjs` | Every path in `docs/high_signal_file_index.json` and `docs/codebase-overview.md` resolves. `--prune` drops dead index entries. |
+| `package-extension.mjs` | Builds `dist/<name>-<version>.zip` with only the files Chrome loads. |
+
+---
+title: docs/SECURITY.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/docs/SECURITY.md
+---
+
+# Security
+
+To report a vulnerability, see [.github/SECURITY.md](../.github/SECURITY.md).
+
+## Posture
+
+The extension has no server, no account, no telemetry, and no dependencies. It
+talks to exactly one origin, `youtube.com`, and it does so without cookies.
+Transcript data exists in memory, in `chrome.storage.session` for the moment
+between the popup and the printable viewer, and in whatever PDF the user chose
+to save.
+
+## Permissions
+
+| Permission | Why it is needed | What it would allow if abused |
+| --- | --- | --- |
+| `tabs` | Read the active tab's URL to prefill the input; find a tab already open on the requested video. | Reading URLs and titles of all open tabs. |
+| `scripting` | Inject the transcript-panel reader when the direct download is blocked. | Running code in pages matching the host permissions. |
+| `storage` | Persist formatting preferences; hand the transcript to the printable viewer. | Reading extension-local storage. |
+| `downloads` | Save the generated PDF. | Writing files to the Downloads folder. |
+| `host_permissions: youtube.com, m.youtube.com` | Fetch watch pages and caption tracks; inject into a YouTube tab. | Network access to YouTube only. |
+
+Deliberately **not** requested: `<all_urls>`, `cookies`, `webRequest`,
+`history`, `identity`, `nativeMessaging`. The `youtu.be` host permission was
+removed once it was clear URLs are normalised to `youtube.com` before any
+request.
+
+Any new permission needs a written justification in the pull request and a row
+in this table.
+
+## Threat model
+
+**Assets.** The transcript, the user's browsing context (open tab URLs), and
+the user's YouTube session — which the extension deliberately never touches.
+
+**Trust boundaries.** Everything crossing from a YouTube page into the
+extension is untrusted: watch-page HTML, caption payloads, and text scraped
+from the transcript panel. All of it is attacker-influenceable by whoever
+controls a video's metadata or captions.
+
+### STRIDE
+
+**Spoofing.** A page could pose as YouTube. `parseVideoId` checks the hostname
+against an exact allowlist, so `youtube.com.evil.test` and
+`evil.test/youtube.com` are both rejected. Requests are built from a canonical
+URL constructed from the parsed video id, never from user-supplied URL text.
+
+**Tampering.** A malicious watch page could serve a hostile caption-track list.
+The `baseUrl` is used only as a fetch target, and the response is parsed as
+JSON or scanned with a regex — never evaluated. A caption `baseUrl` pointing off
+YouTube would be fetched, which is why host permissions stay narrow; the
+response can only ever become inert text.
+
+**Repudiation.** Not applicable — single user, local, no multi-party actions.
+
+**Information disclosure.** The main risk is transcript data escaping the
+machine. There is no outbound path except YouTube: no analytics, no error
+reporting, no remote logging. `credentials: 'omit'` on every request means the
+extension cannot act as the signed-in user or leak session cookies. The
+printable viewer deletes its session-storage payload immediately after render
+rather than leaving it for the browser session.
+
+**Denial of service.** A pathological video could return an enormous transcript.
+Requests have a 15-second timeout; tab loads have 20. A very large transcript
+would make the popup slow but stays bounded by what YouTube itself renders.
+
+**Elevation of privilege.** The dangerous shape would be page-controlled text
+becoming code in an extension context. Mitigations: the extension CSP blocks
+`eval`, `new Function`, and inline scripts; the codebase contains no `innerHTML`,
+`outerHTML`, `eval`, or `new Function`; all rendering is `textContent`; scripts
+are loaded from files, never from strings; the injected reader is injected on
+demand rather than declared, so it does not run on every YouTube page.
+
+## Injected code
+
+`src/content/scrape-transcript.js` runs in the isolated world, not the page's
+main world, so page JavaScript cannot reach its variables. It reads the DOM and
+returns strings. It never writes to the page, never clicks anything except the
+transcript control, and never evaluates page-supplied values.
+
+## Secrets
+
+None. There are no API keys, tokens, or credentials anywhere in the repository,
+and there is nothing for a leak to expose. `.gitignore` covers `.env` regardless.
+
+## Supply chain
+
+Zero runtime and zero development dependencies. `npm install` has nothing to
+install and CI runs without one. The only third-party code in CI is the pinned
+GitHub Actions, which Dependabot tracks monthly.
+
+## Known limits
+
+The transcript-panel reader depends on YouTube's private markup. That is a
+fragility problem, not a security one — when it breaks, it returns nothing.
+
+Users grant an extension with `youtube.com` host permissions the ability to read
+YouTube pages. That is inherent to what this does.
+
+---
+title: docs/TESTING.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/docs/TESTING.md
+---
+
+# Testing
+
+## Strategy
+
+Automated tests cover the **pure modules** in `src/lib/` — the parsers and the
+PDF writer, where the logic actually lives. The `chrome.*` layer is verified by
+hand, because putting a fake extension API around it would test the fake rather
+than Chrome.
+
+That split is the reason `src/lib/` is forbidden from importing `chrome.*`.
+
+## Running
+
+```bash
+npm test                                        # all 31 tests
+node --test test/pdf.test.js                    # one file
+node --test --test-name-pattern="wrapText"      # one case
+```
+
+Node's built-in runner. No framework, no install, no config.
+
+## Suites
+
+| File | Tests | Covers |
+| --- | --- | --- |
+| `test/youtube.test.js` | 12 | URL parsing across every accepted shape, hostname-allowlist rejection, watch-page parsing, the bare-`captionTracks` fallback, unplayable videos, the `parsed` flag, regex-literal escaping, track selection precedence |
+| `test/transcript.test.js` | 8 | `json3` and legacy-XML parsing, empty-body handling, format dispatch, timestamp formatting, paragraph grouping on gaps and length caps, render options |
+| `test/pdf.test.js` | 11 | WinAnsi transliteration, word wrap including hard-split of over-long words, PDF structural validity, pagination, escaping, empty input, filename sanitisation |
+
+## Coverage target
+
+Meaningful coverage of the **important and changed or risky paths**, with
+assertions on behaviour and observable effects. Not a blanket line-percentage
+mandate — a line-count target rewards tests that execute code without checking
+it.
+
+Concretely, that means:
+
+- Every exported function in `src/lib/` has at least one test.
+- Every branch that handles hostile or malformed input is tested with that
+  input: unparseable HTML, empty caption bodies, non-Latin text, over-long
+  words, filenames with reserved characters.
+- Every bug that has been fixed has a test that fails without the fix. All six
+  correctness fixes in commit `cc02654` shipped with one.
+
+CI gate: `npm run check` must pass on Node 20, 22, and 24. There is no coverage
+percentage gate, and adding one is not planned.
+
+## What the PDF tests actually assert
+
+`verifyStructure` in `test/pdf.test.js` is the interesting helper. It parses the
+generated bytes back out: header, `%%EOF` marker, `startxref` offset, and then
+every cross-reference entry, checking that each declared byte offset really does
+land on the object it claims. A PDF with a corrupt xref table opens in some
+readers and not others, so testing the structure rather than the bytes catches
+the failure that matters.
+
+## Manual test plan
+
+No test covers the extension layer, so run this before any release, and before
+merging anything that touches the service worker, popup, viewer, or content
+script.
+
+1. **Prefill** — open a YouTube video, click the extension. The URL is filled
+   in and the status says the video was detected.
+2. **Human captions** — fetch a video with author-provided captions. Preview
+   shows timestamped paragraphs.
+3. **Auto captions** — repeat with an auto-generated track. The meta line says
+   `auto-generated captions`.
+4. **Strategy 2** — fetch a video with no tab open on it. A background tab
+   opens, closes, and the meta line says `read from transcript panel`.
+5. **Tab reuse** — with the video already open, fetch again. No new tab appears.
+6. **Language switch** — pick another language from the dropdown. The transcript
+   refetches in that language.
+7. **Options** — toggle timestamps and paragraphs. The preview updates, and the
+   setting survives closing and reopening the popup.
+8. **Download** — click **Download PDF**. The file lands in Downloads and opens
+   correctly. Check the last page, not just the first.
+9. **Print** — click **Print**. A viewer tab opens; Chrome's print preview shows
+   the transcript.
+10. **Non-Latin** — repeat 8 and 9 on a video with CJK or Cyrillic captions.
+    The download shows `?`; the print path renders correctly. This is expected.
+11. **No captions** — fetch a video without captions. A clear error, no crash.
+12. **Bad URL** — submit a non-YouTube URL. A clear error, no request made.
+13. **Long video** — fetch something over an hour. Timestamps carry hours, and
+    the PDF paginates.
+
+## Adding tests
+
+New behaviour in `src/lib/` needs a test. New behaviour in the `chrome.*` layer
+needs a line in the PR describing how it was verified, and a step added above if
+it is a path worth re-checking every release.
+
+---
+title: docs/known-issues.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/docs/known-issues.md
+---
+
+# Known Issues
+
+## Active limitations
+
+### Non-Latin text becomes `?` in the downloaded PDF
+
+**Severity:** medium · **Workaround:** use **Print**
+
+`src/lib/pdf.js` uses the standard Helvetica fonts, which are WinAnsi
+(Latin-1). Typographic characters are transliterated — `—` becomes `--`, curly
+quotes become straight — but CJK, Cyrillic, Arabic, Greek, and Hebrew become
+`?`. The **Print** button exists precisely for this: Chrome's renderer handles
+every script correctly.
+
+Fixing it properly means embedding a Unicode TrueType font with a subsetted
+CID-keyed font program, which is a large amount of code and roughly a megabyte
+of font data, for something the print path already solves.
+
+### The transcript panel is not a public API
+
+**Severity:** high, latent · **Workaround:** see the runbook
+
+`src/content/scrape-transcript.js` reads YouTube's rendered transcript panel.
+YouTube has already migrated once, from `ytd-transcript-segment-renderer` to
+`transcript-segment-view-model`, and the current markup's class names are
+obfuscated. The reader handles both generations and falls back to structural
+matching, but a future redesign will eventually break it.
+
+When it does, the extension reports "YouTube would not release the captions"
+rather than producing wrong output. See
+[runbooks/transcript-panel-broke.md](runbooks/transcript-panel-broke.md).
+
+### Strategy 2 briefly opens a tab
+
+**Severity:** low · **Workaround:** open the video first
+
+When no tab is open on the requested video, the extension opens one in the
+background and closes it when done. It is visible in the tab strip for a few
+seconds. This is a direct consequence of YouTube's token requirement — there is
+no way to render the panel without a page.
+
+If a tab is already open on that video, it is reused and nothing new appears.
+
+### Direct caption download rarely succeeds
+
+**Severity:** low, by design
+
+Strategy 1 usually returns an empty body and the extension falls through to
+strategy 2. The code is kept because it is fast when it works and costs one
+request when it does not.
+
+### No coverage of the `chrome.*` layer
+
+**Severity:** medium
+
+The service worker, popup, content script, and viewer have no automated tests.
+Mocking the extension API would test the mock. The
+[manual test plan](TESTING.md#manual-test-plan) covers this instead.
+
+## Videos that will never work
+
+- **No captions.** There is no speech-to-text fallback.
+- **Age-restricted.** YouTube requires a signed-in session, which the extension
+  deliberately does not use.
+- **Private, unlisted-without-link, members-only, or removed.** Reported as
+  "YouTube will not serve that video".
+- **Live streams still in progress.** No complete transcript exists yet.
+
+## Not bugs
+
+- **A consent screen instead of a video page.** Reported as "YouTube did not
+  return a usable video page". Open the video in a tab and retry — the tab will
+  be reused.
+- **Auto-generated transcripts have no punctuation.** That is what YouTube
+  produced. Paragraph grouping falls back to speech gaps and length.
+- **Timestamps drift from the audio by a second or two.** Cue boundaries come
+  from YouTube.
+
+## Reporting
+
+Open an issue with the video URL, whether its captions are auto-generated, and
+anything red in the service worker console.
+
+---
+title: PRIVACY.md
+url: https://github.com/mithudso/youtube-transcript-to-pdf/blob/HEAD/PRIVACY.md
+---
+
+# Privacy Policy for Transcript to PDF for YouTube
+
+**Last updated: 27 August 2026**
+
+## Summary
+
+This extension does not collect, store, or transmit any personal data. Nothing
+you do with it is sent anywhere. There is no server, no account, no analytics,
+and no third-party service of any kind.
+
+## What data the extension handles
+
+The extension processes three things, all of them locally, in your browser:
+
+| Data | Why it is touched | Where it goes |
+| --- | --- | --- |
+| The URL of the video you ask about | To identify which video's transcript to fetch | Used to request that video's page from YouTube. Never stored. |
+| The URL of your active tab | To prefill the input box when you are already on a YouTube video | Read at the moment you open the popup, used to fill in the text field, and discarded when the popup closes. Never stored, never transmitted. |
+| The transcript itself | It is the thing you asked for | Held in memory while the popup is open, and written to the PDF file you choose to save. Never transmitted. |
+
+## What is stored on your device
+
+Two things, both in the browser's extension storage, both local to your machine:
+
+1. **Your formatting preferences** — whether timestamps and paragraph grouping
+   are switched on. Two true/false values. Stored in `chrome.storage.local` so
+   they survive closing the popup.
+2. **A temporary transcript handoff** — when you press **Print**, the transcript
+   is placed in `chrome.storage.session` so the printable page can read it. It
+   is deleted the moment that page renders, and session storage is cleared when
+   you close the browser regardless.
+
+Neither is synced. The extension does not use `chrome.storage.sync`, so nothing
+is uploaded to a Google account.
+
+## Network requests
+
+The extension contacts exactly one host: `youtube.com`. It requests the video's
+watch page and, where YouTube allows it, the caption track. When YouTube blocks
+the direct caption request, the extension instead opens the video in a browser
+tab and reads the transcript panel YouTube itself renders.
+
+All requests are made with credentials omitted, meaning **your YouTube cookies
+and session are never attached**. The extension cannot see who you are on
+YouTube and cannot act on your behalf.
+
+No request is made to any other host. There is no telemetry endpoint, no crash
+reporter, no update check, and no advertising or analytics network.
+
+## Third-party services
+
+None. The extension has zero third-party dependencies and loads no remote code.
+Everything it runs is contained in the extension package.
+
+## Data sharing
+
+Nothing is shared, because nothing is collected. No data is sold, and none is
+used for advertising, profiling, creditworthiness, or any purpose other than
+producing the transcript you asked for.
+
+## Data retention and deletion
+
+Your formatting preferences persist until you remove the extension, which
+deletes them. The temporary print handoff is deleted immediately after use.
+Transcripts are not retained at all.
+
+PDFs you save are ordinary files on your computer. The extension has no access
+to them once they are written, and removing the extension does not affect them.
+
+## Permissions
+
+The extension requests five permissions, each tied to a specific feature:
+
+- **`tabs`** — read the active tab's URL to prefill the input, and find a tab
+  already open on the video you requested.
+- **`scripting`** — inject the transcript reader into a YouTube tab when the
+  direct caption download is blocked.
+- **`storage`** — save your formatting preferences and hand the transcript to
+  the printable page.
+- **`downloads`** — save the PDF.
+- **Host access to `youtube.com` and `m.youtube.com`** — fetch video pages and
+  captions. No other site is accessible to the extension.
+
+## Changes to this policy
+
+If the extension's data practices ever change, this policy will be updated and
+the change recorded in the repository's commit history, which is public. The
+"Last updated" date above reflects the current version.
+
+## Contact
+
+Questions about privacy, or anything else, can be raised at
+[github.com/mithudso/youtube-transcript-to-pdf/issues](https://github.com/mithudso/youtube-transcript-to-pdf/issues).
+
+For security issues specifically, please use
+[private vulnerability reporting](https://github.com/mithudso/youtube-transcript-to-pdf/security/advisories/new)
+rather than a public issue.

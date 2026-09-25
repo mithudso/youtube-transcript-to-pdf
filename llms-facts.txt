@@ -1,0 +1,25 @@
+<!-- generated: llms-suite 1.0, 2026-09-25; verified-as-of 2026-09-25; local paths rewritten to repo-relative -->
+
+# Transcript to PDF for YouTube: Sourced Facts
+
+One declarative fact per line, each tagged with the repo-relative file it came from.
+
+## Facts
+
+- The extension is a Manifest V3 Chrome extension that exports a YouTube transcript as a PDF locally with no server, API key or third-party service [src: README.md]
+- The extension is version 1.0.0 and requires Chrome 116 or later [src: manifest.json]
+- The manifest requests the permissions tabs, scripting, storage and downloads [src: manifest.json]
+- Host permissions are limited to https://www.youtube.com/* and https://m.youtube.com/* [src: manifest.json]
+- Since 2024 YouTube requires a proof-of-origin token, so a plain timedtext request returns HTTP 200 with an empty body [src: README.md]
+- The extension tries a direct timedtext download first and falls back to reading YouTube's transcript panel [src: README.md]
+- The transcript-panel strategy is the one that works most of the time and briefly opens a background tab [src: README.md]
+- Requests to YouTube are sent with credentials: 'omit' so the user's session is not attached [src: README.md]
+- Download PDF uses a built-in dependency-free writer in src/lib/pdf.js [src: README.md]
+- The built-in PDF writer uses Helvetica (Latin-1); characters outside Latin-1 become ?, and Print is the workaround [src: README.md]
+- src/lib has no chrome.* dependency, which makes it testable under plain Node [src: README.md]
+- The service worker keeps no state in module scope because MV3 terminates it after roughly 30 seconds idle [src: README.md]
+- The reader handles both ytd-transcript-segment-renderer and transcript-segment-view-model markup [src: docs/known-issues.md]
+- Videos without captions cannot produce a transcript and there is no speech-to-text fallback [src: README.md]
+- npm run check runs lint:manifest, the tests and lint:docs [src: package.json]
+- Tests use the Node built-in test runner with no dependencies to install [src: README.md]
+- The project is MIT licensed and requires Node 20 or later for development [src: package.json]
