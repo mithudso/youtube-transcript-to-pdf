@@ -120,7 +120,7 @@ function findBalancedEnd(text, start) {
  */
 export function extractJsonVar(html, varName) {
   const literal = String(varName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const marker = new RegExp(`(?:var\\s+)?${literal}\\s*=\\s*\\{`);
+  const marker = new RegExp(`(?:^|[^\\w$])(?:var\\s+)?${literal}\\s*=\\s*\\{`);
   const match = marker.exec(html);
   if (!match) return null;
 
@@ -179,14 +179,16 @@ export function parseWatchPage(html) {
     }
   }
 
-  const tracks = (rawTracks ?? [])
-    .filter((track) => typeof track?.baseUrl === 'string')
+  const tracks = (Array.isArray(rawTracks) ? rawTracks : [])
+    .filter((track) => typeof track?.baseUrl === 'string' && typeof track.languageCode === 'string')
     .map((track) => ({
       baseUrl: track.baseUrl,
       languageCode: track.languageCode ?? '',
       name:
-        track.name?.simpleText ??
-        track.name?.runs?.map((run) => run.text).join('') ??
+        (typeof track.name?.simpleText === 'string' ? track.name.simpleText : null) ??
+        (Array.isArray(track.name?.runs)
+          ? track.name.runs.map((run) => typeof run?.text === 'string' ? run.text : '').join('')
+          : null) ??
         track.languageCode ??
         'Unknown',
       isGenerated: track.kind === 'asr' || /auto-generated/i.test(track.name?.simpleText ?? ''),
@@ -198,8 +200,8 @@ export function parseWatchPage(html) {
     // captcha, an error shell) rather than a video that simply has no captions.
     parsed: player !== null || rawTracks !== null,
     tracks,
-    title: details?.title ?? null,
-    author: details?.author ?? null,
+    title: typeof details?.title === 'string' ? details.title : null,
+    author: typeof details?.author === 'string' ? details.author : null,
     isPlayable: (status?.status ?? 'OK') === 'OK',
     reason: status?.reason ?? status?.errorScreen?.playerErrorMessageRenderer?.reason?.simpleText ?? null,
   };
@@ -220,11 +222,11 @@ export function pickTrack(tracks, preferredLanguage) {
 
   const want = String(preferredLanguage ?? '').trim().toLowerCase();
   if (want && want !== 'auto') {
-    const exact = tracks.find((t) => t.languageCode.toLowerCase() === want);
+    const exact = tracks.find((t) => String(t.languageCode ?? '').toLowerCase() === want);
     if (exact) return exact;
 
     const base = want.split('-')[0];
-    const sameBase = tracks.find((t) => t.languageCode.toLowerCase().split('-')[0] === base);
+    const sameBase = tracks.find((t) => String(t.languageCode ?? '').toLowerCase().split('-')[0] === base);
     if (sameBase) return sameBase;
   }
 

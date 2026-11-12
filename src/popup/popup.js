@@ -16,6 +16,11 @@ const OPTIONS_KEY = 'formatOptions';
 /** Key used to hand the transcript to the printable viewer page. */
 const VIEWER_KEY = 'viewerPayload';
 
+/** Prevent stale in-flight replies from replacing a newer request. */
+let fetchSequence = 0;
+let interactionVersion = 0;
+let optionsTouched = false;
+
 const elements = {
   form: document.getElementById('fetch-form'),
   url: document.getElementById('url'),
@@ -33,7 +38,7 @@ const elements = {
   copy: document.getElementById('copy'),
 };
 
-/** @type {{videoId: string, title: string, author: string|null, language: string, isGenerated: boolean, availableLanguages: Array<{code: string, name: string, isGenerated: boolean}>, segments: Array<{start: number, duration: number, text: string}>}|null} */
+/** @type {{videoId: string, title: string, author: string|null, language: string, isGenerated: boolean|null, availableLanguages: Array<{code: string, name: string, isGenerated: boolean}>, segments: Array<{start: number, duration: number, text: string}>}|null} */
 let transcript = null;
 
 /**
@@ -119,8 +124,13 @@ function subtitleLines() {
 async function handleFetch(event) {
   event.preventDefault();
 
+  const sequence = ++fetchSequence;
   const input = elements.url.value.trim();
+  const language = elements.language.value;
+  transcript = null;
+  elements.result.hidden = true;
   if (!parseVideoId(input)) {
+    elements.fetch.disabled = false;
     setStatus('Enter a YouTube video URL or an 11-character video ID.', 'error');
     return;
   }
@@ -132,9 +142,10 @@ async function handleFetch(event) {
     const response = await chrome.runtime.sendMessage({
       type: 'FETCH_TRANSCRIPT',
       url: input,
-      language: elements.language.value,
+      language,
     });
 
+    if (sequence !== fetchSequence) return;
     if (!response?.ok) {
       transcript = null;
       elements.result.hidden = true;
@@ -158,9 +169,12 @@ async function handleFetch(event) {
     elements.result.hidden = false;
     setStatus('');
   } catch (error) {
-    setStatus(`Extension error: ${error.message}`, 'error');
+    if (sequence === fetchSequence) {
+      console.warn('Popup operation failed:', { operation: 'transcript-fetch', code: 'message-failed' });
+      setStatus(`Extension error: ${error.message}`, 'error');
+    }
   } finally {
-    elements.fetch.disabled = false;
+    if (sequence === fetchSequence) elements.fetch.disabled = false;
   }
 }
 
@@ -175,7 +189,19 @@ async function handleFetch(event) {
  * @param {string} objectUrl
  * @param {number} downloadId
  */
-function revokeWhenComplete(objectUrl, downloadId) {
+async function revokeWhenComplete(objectUrl, downloadId, filename) {
+  let revoked = false;
+  const release = (state) => {
+    if (revoked) return;
+    revoked = true;
+    if (state === 'complete') setStatus(`Saved ${filename} to your downloads.`);
+    else {
+      setStatus('Download was interrupted. Try saving again.', 'error');
+      console.warn('PDF download failed:', { code: 'download-interrupted' });
+    }
+    chrome.downloads.onChanged.removeListener(onChanged);
+    URL.revokeObjectURL(objectUrl);
+  };
   /**
    * @param {chrome.downloads.DownloadDelta} delta
    */
@@ -183,11 +209,16 @@ function revokeWhenComplete(objectUrl, downloadId) {
     if (delta.id !== downloadId) return;
     if (delta.state?.current !== 'complete' && delta.state?.current !== 'interrupted') return;
 
-    chrome.downloads.onChanged.removeListener(onChanged);
-    URL.revokeObjectURL(objectUrl);
+    release(delta.state.current);
   };
 
   chrome.downloads.onChanged.addListener(onChanged);
+  try {
+    const [download] = await chrome.downloads.search({ id: downloadId });
+    if (download?.state === 'complete' || download?.state === 'interrupted') release(download.state);
+  } catch {
+    console.warn('Download state query failed:', { code: 'download-state' });
+  }
 }
 
 /** Builds the PDF in-page and hands the bytes to chrome.downloads. */
@@ -214,10 +245,11 @@ async function handleDownload() {
       saveAs: false,
     });
 
-    revokeWhenComplete(objectUrl, downloadId);
+    setStatus(`Downloading ${filename}…`);
+    await revokeWhenComplete(objectUrl, downloadId, filename);
     objectUrl = null;
-    setStatus(`Saved ${filename} to your downloads.`);
   } catch (error) {
+    console.warn('Popup operation failed:', { operation: 'pdf-download', code: 'download-failed' });
     setStatus(`Could not save the PDF: ${error.message}`, 'error');
   } finally {
     if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -232,16 +264,22 @@ async function handleDownload() {
 async function handlePrint() {
   if (!transcript) return;
 
-  await chrome.storage.session.set({
-    [VIEWER_KEY]: {
-      title: transcript.title,
-      subtitleLines: subtitleLines(),
-      blocks: toBlocks(),
-    },
-  });
-
-  await chrome.tabs.create({ url: chrome.runtime.getURL('src/viewer/viewer.html') });
-  window.close();
+  const key = `${VIEWER_KEY}:${crypto.randomUUID()}`;
+  try {
+    await chrome.storage.session.set({
+      [key]: { title: transcript.title, subtitleLines: subtitleLines(), blocks: toBlocks() },
+    });
+    await chrome.tabs.create({ url: `${chrome.runtime.getURL('src/viewer/viewer.html')}?payload=${encodeURIComponent(key)}` });
+    window.close();
+  } catch (error) {
+    try {
+      await chrome.storage.session.remove(key);
+    } catch {
+      console.warn('Print handoff cleanup failed:', { code: 'viewer-cleanup' });
+    }
+    console.warn('Popup operation failed:', { operation: 'print-handoff', code: 'handoff-failed' });
+    setStatus(`Could not open the printable transcript: ${error.message}`, 'error');
+  }
 }
 
 /** Copies the rendered transcript text to the clipboard. */
@@ -252,35 +290,47 @@ async function handleCopy() {
     await navigator.clipboard.writeText(renderText(transcript.segments, currentOptions()));
     setStatus('Copied to clipboard.');
   } catch (error) {
+    console.warn('Popup operation failed:', { operation: 'clipboard', code: 'clipboard-failed' });
     setStatus(`Could not copy: ${error.message}`, 'error');
   }
 }
 
 /** Persists formatting options and refreshes the preview. */
 async function handleOptionChange() {
+  optionsTouched = true;
+  interactionVersion += 1;
   renderPreview();
-  await chrome.storage.local.set({ [OPTIONS_KEY]: currentOptions() });
+  try {
+    await chrome.storage.local.set({ [OPTIONS_KEY]: currentOptions() });
+  } catch (error) {
+    console.warn('Popup operation failed:', { operation: 'preferences', code: 'preferences-failed' });
+    setStatus(`Could not save formatting preferences: ${error.message}`, 'error');
+  }
 }
 
 /** Prefills the URL box from the active tab and restores saved options. */
 async function init() {
   const stored = await chrome.storage.local.get(OPTIONS_KEY);
-  if (stored[OPTIONS_KEY]) {
+  if (!optionsTouched && stored[OPTIONS_KEY]) {
     elements.timestamps.checked = stored[OPTIONS_KEY].timestamps !== false;
     elements.paragraphs.checked = stored[OPTIONS_KEY].paragraphs !== false;
+    renderPreview();
   }
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const videoId = tab?.url ? parseVideoId(tab.url) : null;
-  if (videoId) {
+  if (interactionVersion === 0 && fetchSequence === 0 && !elements.url.value.trim() && videoId) {
     elements.url.value = watchUrl(videoId);
     setStatus('Detected the video in this tab.');
   }
 
-  elements.url.focus();
-  elements.url.select();
+  if (interactionVersion === 0 && fetchSequence === 0) {
+    elements.url.focus();
+    elements.url.select();
+  }
 }
 
+elements.url.addEventListener('input', () => { interactionVersion += 1; });
 elements.form.addEventListener('submit', handleFetch);
 elements.download.addEventListener('click', handleDownload);
 elements.print.addEventListener('click', handlePrint);
@@ -288,7 +338,10 @@ elements.copy.addEventListener('click', handleCopy);
 elements.timestamps.addEventListener('change', handleOptionChange);
 elements.paragraphs.addEventListener('change', handleOptionChange);
 elements.language.addEventListener('change', () => {
-  if (transcript) elements.form.requestSubmit();
+  if (transcript || elements.fetch.disabled) elements.form.requestSubmit();
 });
 
-init().catch((error) => setStatus(`Startup error: ${error.message}`, 'error'));
+init().catch((error) => {
+  console.warn('Popup initialization failed:', { code: 'startup' });
+  if (interactionVersion === 0 && fetchSequence === 0) setStatus(`Startup error: ${error.message}`, 'error');
+});

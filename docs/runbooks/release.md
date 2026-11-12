@@ -6,12 +6,11 @@
 npm run check
 ```
 
-Manifest validation, 31 unit tests, and doc index validation must all pass on
-Node 20, 22, and 24 — CI covers the matrix.
+Manifest validation, unit and regression tests, and doc index validation must all pass on
+Node 22, 24, and 26 — CI covers the matrix.
 
-Then run the [manual test plan](../TESTING.md#manual-test-plan) in full. Nothing
-in the `chrome.*` layer is covered by tests, so this is the only gate on the
-service worker, popup, content script, and viewer.
+Then run the [manual test plan](../TESTING.md#manual-test-plan) in full. Synthetic tests cover control flow. The live manual plan verifies current YouTube
+markup/session behavior and Chrome print output.
 
 ## 2. Bump the version
 
@@ -26,15 +25,15 @@ Chrome requires 1–4 dot-separated integers. Semantic versioning applies:
 patch for fixes, minor for new behaviour, major for anything that changes
 permissions or removes a feature.
 
-`npm run lint:manifest` enforces the format but cannot know the two files agree
-— check by eye.
+`npm run lint:manifest` checks the format and requires the two versions to agree.
 
 ## 3. Update the docs that carry counts
 
-Grep for anything version- or count-specific that has drifted:
+Regenerate committed documentation and check for stale version/count claims:
 
 ```bash
-grep -rn "31 unit tests\|31 tests" README.md docs/ CLAUDE.md AGENTS.md GEMINI.md .github/
+npm run docs:generate
+rg -n "tests|version" README.md docs/TESTING.md CLAUDE.md GEMINI.md
 ```
 
 If the test count changed, these all need updating. The same applies to the
@@ -76,19 +75,20 @@ Release notes should say what changed for a *user* — not the commit list.
 
 ## 7. Publishing to the Chrome Web Store
 
-The listing is prepared but **not yet submitted**. Everything the dashboard asks
+The repository last recorded a prepared draft on 2026-08-27; current store status
+is unverified. Everything the dashboard asks
 for lives in [CHROMEWEBSTORE.md](../../CHROMEWEBSTORE.md): listing copy, the
 per-permission justifications, the data-use disclosure, and the asset inventory.
 
-The blockers that file tracked are cleared: the publisher name and contact
+The historical preparation record says these blockers were cleared: the publisher name and contact
 email are set, the icon is now a document mark rather than a play triangle, and
 the extension was renamed to "Transcript to PDF for YouTube" so it no longer
 leads with a trademark.
 
-Screenshot 1 is now a capture of the running extension. Browser automation
-cannot reach `chrome-extension://` URLs, so that capture has to be taken by
-hand: open the popup with a transcript loaded, screenshot it, crop to the popup
-alone, and save it as `store-assets/raw-popup-live.png`. The composer picks it
+The committed screenshot 1 came from a running-extension capture. Recapture it
+for the release using a disposable browser profile that can load the unpacked
+extension, or by hand: open the popup with a transcript loaded, screenshot it,
+crop to the popup alone, and save it as `store-assets/raw-popup-live.png`. The composer picks it
 up automatically and falls back to the harness render when it is absent.
 
 For the full submission procedure, see

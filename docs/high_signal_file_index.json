@@ -1,259 +1,289 @@
 {
   "schema": "high-signal-file-index/1",
   "repository": "youtube-transcript-to-pdf",
-  "generatedFrom": "bb79a94",
-  "note": "Retrieval index for the files worth reading. Validate with `npm run lint:docs`.",
+  "note": "Runtime, tools, tests and CI. Regenerate with npm run docs:generate; validate with npm run lint:docs.",
   "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "kind": "config",
+      "lines": 79,
+      "description": "Maintained config: .github/workflows/ci.yml.",
+      "exports": [],
+      "depends_on": []
+    },
     {
       "path": "manifest.json",
       "kind": "config",
-      "lines": 32,
+      "lines": 37,
       "description": "Manifest V3 declaration: permissions, host permissions, service worker, popup, icons.",
-      "keywords": [
-        "manifest",
-        "permissions",
-        "mv3"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "package.json",
       "kind": "config",
-      "lines": 17,
+      "lines": 37,
       "description": "npm scripts for validation, tests, doc index checks, and packaging. Zero dependencies.",
-      "keywords": [
-        "scripts",
-        "npm"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "scripts/build-store-assets.mjs",
       "kind": "tooling",
       "lines": 199,
       "description": "Renders the real popup and viewer markup into screenshot harness pages and generates a genuine PDF, for Chrome Web Store assets.",
-      "keywords": [
-        "store",
-        "screenshots",
-        "harness",
-        "assets"
+      "exports": [],
+      "depends_on": [
+        "src/lib/transcript.js",
+        "src/lib/pdf.js",
+        "src/lib/youtube.js"
       ]
     },
     {
       "path": "scripts/check-doc-indexes.mjs",
       "kind": "tooling",
-      "lines": 112,
+      "lines": 134,
       "description": "Path-validates the documentation retrieval indexes; --prune removes dead entries.",
-      "keywords": [
-        "docs",
-        "index",
-        "ci"
-      ]
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "scripts/check-syntax.mjs",
+      "kind": "tooling",
+      "lines": 19,
+      "description": "Maintained tooling: scripts/check-syntax.mjs.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "scripts/compose-store-screenshots.py",
       "kind": "tooling",
-      "lines": 257,
+      "lines": 286,
       "description": "Composes captured harness renders into the 1280x800 store screenshots and the 440x280 promo tile.",
-      "keywords": [
-        "store",
-        "screenshots",
-        "pillow",
-        "assets"
-      ]
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "scripts/generate-doc-index.mjs",
+      "kind": "tooling",
+      "lines": 77,
+      "description": "Maintained tooling: scripts/generate-doc-index.mjs.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "scripts/generate-icons.py",
       "kind": "tooling",
       "lines": 104,
-      "description": "Draws the extension's icon set \u2014 a document mark on the project's red field \u2014 at every declared size, with size-aware detail.",
-      "keywords": [
-        "icons",
-        "branding",
-        "pillow",
-        "assets"
-      ]
+      "description": "Draws the extension's icon set — a document mark on the project's red field — at every declared size, with size-aware detail.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "scripts/package-extension.mjs",
       "kind": "tooling",
-      "lines": 32,
+      "lines": 50,
       "description": "Builds the Chrome Web Store archive from only the files Chrome loads.",
-      "keywords": [
-        "build",
-        "zip",
-        "release"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "scripts/validate-manifest.mjs",
       "kind": "tooling",
-      "lines": 113,
+      "lines": 184,
       "description": "Validates manifest shape, referenced files, icon PNG signatures and real pixel dimensions, and absence of Manifest V2 keys.",
-      "keywords": [
-        "validation",
-        "manifest",
-        "icons",
-        "ci"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/background/service-worker.js",
       "kind": "source",
-      "lines": 317,
+      "lines": 340,
       "description": "MV3 service worker. Owns all network and tab work; runs the direct-download and transcript-panel strategies; message contract with the popup.",
-      "keywords": [
-        "service worker",
-        "fetch",
-        "tabs",
-        "strategies",
-        "errors"
+      "exports": [],
+      "depends_on": [
+        "src/lib/youtube.js",
+        "src/lib/transcript.js"
       ]
     },
     {
       "path": "src/content/scrape-transcript.js",
       "kind": "source",
-      "lines": 141,
+      "lines": 209,
       "description": "Injected transcript-panel reader. Handles both YouTube markup generations plus a structural fallback. The most fragile file in the repo.",
-      "keywords": [
-        "content script",
-        "dom",
-        "transcript panel",
-        "selectors"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/lib/pdf.js",
       "kind": "source",
-      "lines": 358,
+      "lines": 371,
       "description": "Dependency-free PDF 1.4 writer: toWinAnsi, wrapText, buildTranscriptPdf, toSafeFilename. Helvetica AFM metrics, verified xref table.",
-      "keywords": [
-        "pdf",
-        "helvetica",
-        "word wrap",
-        "winansi",
-        "filename"
-      ]
+      "exports": [
+        "toWinAnsi",
+        "wrapText",
+        "buildTranscriptPdf",
+        "toSafeFilename"
+      ],
+      "depends_on": []
     },
     {
       "path": "src/lib/transcript.js",
       "kind": "source",
-      "lines": 218,
+      "lines": 239,
       "description": "Pure caption parsing and formatting: parseJson3, parseTimedTextXml, parseCaptions, formatTimestamp, groupIntoParagraphs, renderText.",
-      "keywords": [
-        "captions",
-        "json3",
-        "timedtext xml",
-        "paragraphs",
-        "timestamps"
-      ]
+      "exports": [
+        "parseJson3",
+        "parseTimedTextXml",
+        "parseCaptions",
+        "formatTimestamp",
+        "groupIntoParagraphs",
+        "renderText"
+      ],
+      "depends_on": []
     },
     {
       "path": "src/lib/youtube.js",
       "kind": "source",
-      "lines": 232,
+      "lines": 234,
       "description": "Pure YouTube URL parsing and watch-page scraping: parseVideoId, parseWatchPage, pickTrack, extractJsonVar, watchUrl.",
-      "keywords": [
-        "url parsing",
-        "video id",
-        "caption tracks",
-        "watch page"
-      ]
+      "exports": [
+        "parseVideoId",
+        "watchUrl",
+        "extractJsonVar",
+        "parseWatchPage",
+        "pickTrack"
+      ],
+      "depends_on": []
     },
     {
       "path": "src/popup/popup.css",
       "kind": "style",
       "lines": 144,
       "description": "Popup styles with light and dark palettes.",
-      "keywords": [
-        "popup",
-        "css",
-        "dark mode"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/popup/popup.html",
       "kind": "markup",
       "lines": 62,
       "description": "Popup markup. Module script only, no inline handlers.",
-      "keywords": [
-        "popup",
-        "html"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/popup/popup.js",
       "kind": "source",
-      "lines": 294,
+      "lines": 347,
       "description": "Popup controller: prefill, fetch, preview, PDF download, print handoff, clipboard, persisted options.",
-      "keywords": [
-        "popup",
-        "ui",
-        "download",
-        "blob url"
+      "exports": [],
+      "depends_on": [
+        "src/lib/youtube.js",
+        "src/lib/transcript.js",
+        "src/lib/pdf.js"
       ]
     },
     {
       "path": "src/viewer/viewer.css",
       "kind": "style",
-      "lines": 80,
+      "lines": 81,
       "description": "Viewer styles including print rules.",
-      "keywords": [
-        "viewer",
-        "css",
-        "print"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/viewer/viewer.html",
       "kind": "markup",
       "lines": 16,
       "description": "Printable viewer markup.",
-      "keywords": [
-        "viewer",
-        "html"
-      ]
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "src/viewer/viewer.js",
       "kind": "source",
-      "lines": 71,
+      "lines": 86,
       "description": "Printable viewer. Reads a one-shot payload from session storage, deletes it, renders for Chrome print-to-PDF.",
-      "keywords": [
-        "viewer",
-        "print",
-        "unicode"
-      ]
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "test/content-script.test.js",
+      "kind": "test",
+      "lines": 132,
+      "description": "Behavioral regression tests for content-script.test.js.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "test/pdf.test.js",
       "kind": "test",
-      "lines": 126,
-      "description": "11 tests: transliteration, word wrap, PDF structural validity including byte-accurate xref offsets, pagination, filenames.",
-      "keywords": [
-        "tests",
-        "pdf",
-        "xref"
+      "lines": 227,
+      "description": "Tests: transliteration, word wrap, PDF structural validity including byte-accurate xref offsets, pagination, filenames.",
+      "exports": [],
+      "depends_on": [
+        "src/lib/pdf.js"
       ]
+    },
+    {
+      "path": "test/popup.test.js",
+      "kind": "test",
+      "lines": 212,
+      "description": "Behavioral regression tests for popup.test.js.",
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "test/service-worker.test.js",
+      "kind": "test",
+      "lines": 184,
+      "description": "Behavioral regression tests for service-worker.test.js.",
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "test/store_assets_test.py",
+      "kind": "test",
+      "lines": 51,
+      "description": "Behavioral regression tests for store_assets_test.py.",
+      "exports": [],
+      "depends_on": []
+    },
+    {
+      "path": "test/tooling.test.js",
+      "kind": "test",
+      "lines": 295,
+      "description": "Behavioral regression tests for tooling.test.js.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "test/transcript.test.js",
       "kind": "test",
-      "lines": 93,
-      "description": "8 tests: json3 and XML parsing, empty bodies, timestamps, paragraph grouping, render options.",
-      "keywords": [
-        "tests",
-        "captions",
-        "formatting"
+      "lines": 150,
+      "description": "Tests: json3 and XML parsing, empty bodies, timestamps, paragraph grouping, render options.",
+      "exports": [],
+      "depends_on": [
+        "src/lib/transcript.js"
       ]
+    },
+    {
+      "path": "test/viewer.test.js",
+      "kind": "test",
+      "lines": 89,
+      "description": "Behavioral regression tests for viewer.test.js.",
+      "exports": [],
+      "depends_on": []
     },
     {
       "path": "test/youtube.test.js",
       "kind": "test",
-      "lines": 117,
-      "description": "12 tests: URL shapes, hostname allowlist, watch-page parsing, fallbacks, parsed flag, track selection.",
-      "keywords": [
-        "tests",
-        "url",
-        "parsing"
+      "lines": 136,
+      "description": "Tests: URL shapes, hostname allowlist, watch-page parsing, fallbacks, parsed flag, track selection.",
+      "exports": [],
+      "depends_on": [
+        "src/lib/youtube.js"
       ]
     }
   ]

@@ -4,7 +4,7 @@ Read before writing. This repo is small enough to hold in your head — read
 `docs/ARCHITECTURE.md` and the file you are changing before proposing an edit.
 
 Verify with `npm run check` and paste real output. Never claim a change works
-because it looks right; the `chrome.*` layer has no automated coverage, so
+because it looks right; synthetic regressions cover the `chrome.*` control flow, so
 changes there need a manual pass in a loaded extension.
 
 Prefer the smallest change that fixes the problem. This project has zero
@@ -16,11 +16,11 @@ Manifest V3 Chrome extension. Takes a YouTube URL, resolves the video's
 transcript, exports a PDF. Entirely client-side: no server, no API key, no
 telemetry.
 
-## Commands
+## Build, Test, and Validation Commands
 
 ```bash
 npm run check          # manifest validation + unit tests + doc index validation
-npm test               # 31 unit tests, Node built-in runner
+npm test               # unit and regression tests, Node built-in runner
 npm run lint:manifest  # manifest schema, file references, icon dimensions
 npm run lint:docs      # every path in the doc indexes still exists
 npm run build          # dist/<name>-<version>.zip
@@ -28,7 +28,7 @@ npm run build          # dist/<name>-<version>.zip
 
 No install step — zero dependencies.
 
-## Hard rules
+## Key Conventions
 
 1. `src/lib/` must not reference `chrome.*`. That is what makes it testable.
 2. Manifest V3 APIs only. No inline scripts or inline event handlers in HTML.
@@ -41,7 +41,7 @@ No install step — zero dependencies.
 7. `async`/`await` only. `chrome.runtime.onMessage` listeners doing async work
    must `return true`.
 
-## Where things live
+## High-level Architecture
 
 `src/lib/` pure modules · `src/background/` network and tabs ·
 `src/content/` injected panel reader · `src/popup/` UI ·
@@ -51,3 +51,11 @@ No install step — zero dependencies.
 
 `src/content/scrape-transcript.js` depends on YouTube's private transcript-panel
 markup. See `docs/runbooks/transcript-panel-broke.md`.
+
+## Maintenance records
+
+Keep dated bootstrap and optimizer reports under `docs/`, and update
+`docs/wiki/index.md` and retrieval indexes after structural changes. Preserve the
+public-repository exceptions in `docs/repo-bootstrap-audit-2026-08-27.md`: do not
+commit user prompts, session transcripts, or append-only operator logs. Bump both
+`manifest.json` and `package.json` for a shipped behavior change.

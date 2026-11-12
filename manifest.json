@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Transcript to PDF for YouTube",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fetches the transcript of any YouTube video from its URL and exports it as a formatted PDF file.",
   "minimum_chrome_version": "116",
   "icons": {

@@ -1,80 +1,59 @@
-# External Calls
+# External calls
 
-Every call this extension makes that leaves the process. There are three, all to
-`youtube.com`.
+## Network and panel operations
 
-## Inventory
+| Operation and source | Target/credentials | Timeout and retry | Outcome/log/test |
+| --- | --- | --- | --- |
+| `loadWatchPage`, `src/background/service-worker.js:94` | Canonical HTTPS YouTube watch page; cookies omitted | 15 seconds through body consumption; no retry | Stable operation logs; HTTP/network/timeout errors; worker and parser tests |
+| `loadTrackDirectly`, `src/background/service-worker.js:121` | Page-supplied caption URL validated as HTTPS `www.youtube.com` or `m.youtube.com`, without credentials/port; redirects rejected | 15 seconds per body; JSON3 and original-format attempts | HTTP, empty and exception outcomes; sanitized codes; worker/parser tests |
+| `readFromTranscriptPanel`, `src/background/service-worker.js:200` | Native tab query/create/get/remove and script injection; normal tab session | 20-second load wait; bounded content polling; no automatic network retry | Operation outcome and cleanup warning; worker/content tests and disposable native Chrome fixture |
 
-### 1. Watch-page fetch
+An unreadable anonymous page can still use a panel tab. Missing or incomplete caption metadata also tries the panel before reporting
+that no captions were exposed. Auto panel output has unknown language/generation
+metadata. An explicit language must succeed through the direct track or return
+`language-unavailable`; the worker never labels an unverified panel with a chosen track.
 
-| Field | Value |
-| --- | --- |
-| Site | `src/background/service-worker.js` — `loadWatchPage()` |
-| Target | `https://www.youtube.com/watch?v=<id>&hl=en` |
-| Transport | `fetch`, GET |
-| Credentials | `omit` — no cookies sent |
-| Timeout | 15s via `AbortController` |
-| Retry | None. A failure is reported to the user immediately. |
-| Error handling | Non-2xx throws `TranscriptError('watch-page')`; abort throws `'timeout'`; network failure throws `'network'`. An unparseable body yields `parsed: false` and `TranscriptError('unreadable')`. |
-| Logged | Yes — `console.error` in the message handler |
-| Tested | Response *parsing* is covered by 8 tests in `test/youtube.test.js`. The fetch itself is not — see [TESTING.md](TESTING.md). |
-| Documented | [ARCHITECTURE.md](ARCHITECTURE.md), [COMPONENTS.md](COMPONENTS.md) |
+Temporary tabs carry a fragment marker and are excluded from concurrent tab reuse.
+Each request closes only the tab it created. User-owned tabs remain open. Video identity is checked before and after
+extraction; a navigation mismatch discards the cues. The marker
+is a fragment and is not sent in the HTTP request. Direct extension fetches omit
+cookies; the YouTube page itself can use the browser's ordinary session and make
+YouTube's own requests.
 
-### 2. Caption track download (strategy 1)
+## Other browser API boundaries
 
-| Field | Value |
-| --- | --- |
-| Site | `src/background/service-worker.js` — `loadTrackDirectly()` |
-| Target | The signed `timedtext` URL from the watch page, tried as `&fmt=json3` then bare |
-| Transport | `fetch`, GET |
-| Credentials | `omit` |
-| Timeout | 15s |
-| Retry | Two format attempts, no backoff. Both failing falls through to strategy 2. |
-| Error handling | Throws are caught and logged; a non-2xx or empty body is treated as "blocked" and falls through. |
-| Logged | Yes — `console.warn` per failed attempt |
-| Tested | Payload parsing covered by 8 tests in `test/transcript.test.js`, including the empty body YouTube returns when blocking. |
-| Documented | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Context | Calls | Persistence/recovery |
+| --- | --- | --- |
+| Popup | `runtime.sendMessage`, `tabs.query`, `downloads.download/search/onChanged`, clipboard write | Stale replies ignored; primary I/O failures log safe operation/code fields; download completion/interruption drives status and URL cleanup; failures shown locally |
+| Popup | `storage.local.get/set` | Two formatting booleans; write errors shown to the user |
+| Popup/viewer | `storage.session.set/get/remove`, `tabs.create` | Unique per-Print key; viewer renders then deletes its own payload; failed handoff creation cleans up; failures surfaced |
+| Viewer | `window.print` | User controls Chrome's print dialog and destination; no remote request |
 
-**Note:** this call usually returns HTTP 200 with an empty body. That is
-YouTube's proof-of-origin gate, not a bug. It is the reason strategy 2 exists.
+No browser call retries authentication, escalates permissions or sends diagnostics
+to a server. Storage is local/session, never sync. A failed cleanup can retain a
+handoff until browser shutdown; close the browser to clear it.
 
-### 3. Transcript-panel read (strategy 2)
+## Local developer tools
 
-| Field | Value |
-| --- | --- |
-| Site | `src/background/service-worker.js` — `readFromTranscriptPanel()` |
-| Target | A YouTube tab — reused if open, otherwise created in the background and removed afterwards |
-| Transport | `chrome.tabs.create` / `chrome.scripting.executeScript` — not a network call, but it causes YouTube to load a page |
-| Credentials | The tab's own session, since it is a normal browser tab |
-| Timeout | 20s for tab load; the injected reader polls with its own bounded waits |
-| Retry | None |
-| Error handling | Injection failure is caught, logged, and returns an empty array, which becomes `TranscriptError('blocked')`. A tab this function created is removed in `finally`, never one the user opened. |
-| Logged | Yes — `console.warn` in both the worker and the injected script |
-| Tested | Not automated. Selectors were verified against live YouTube; covered by step 4 of the [manual test plan](TESTING.md#manual-test-plan). |
-| Documented | [ARCHITECTURE.md](ARCHITECTURE.md), [runbooks/transcript-panel-broke.md](runbooks/transcript-panel-broke.md) |
+`package-extension.mjs` validates required inputs, invokes the manifest validator
+through Node, then invokes `zip` with explicit arguments into a unique temporary
+archive. Only successful output replaces the previous archive; failures clean up
+the temporary directory and preserve the previous artifact. `check-syntax.mjs` invokes
+`node --check` per maintained JS file. Other scripts use local filesystem I/O;
+Python artwork scripts read local captures and write images. Tests use disposable
+files. None of these commands contacts a live application or datastore.
 
-## Calls that do not exist
+## Applicability of the service operations standard
 
-Worth stating explicitly, because it is the security posture:
+The prior bootstrap audit deliberately excludes a server operations registry,
+CLI/MCP trigger for browser actions, central JSONL sink, operator dashboard and
+datastore-landed checks. This browser extension has no such service or datastore.
+Applicable controls are bounded calls, safe local diagnostics, failure feedback,
+read-after-write checks in tests/browser fixtures and a complete inventory above.
+These adaptations do not claim compliance with the unadapted five-standard service contract.
 
-- No analytics or telemetry endpoint.
-- No error-reporting service.
-- No update or version-check endpoint.
-- No third-party API of any kind.
-- No `chrome.identity`, no OAuth, no account.
-
-`grep -rn "fetch(\|XMLHttpRequest\|WebSocket\|sendBeacon" src/` returns only the
-two `fetch` sites above.
-
-## On the mdb-tam five-standard contract
-
-The mdb-tam repo standard asks that every external call have a CLI trigger, a
-centralised error log, an auto-remediation map, a dashboard card, and datastore
-verification. Those standards assume a long-running service with an operations
-registry and a dashboard.
-
-This is a browser extension with three calls, no server, no datastore, and no
-operator dashboard. The applicable parts — error handling, logging, and
-documentation per call — are satisfied above. The rest is recorded as
-deliberately not applicable in
-[repo-bootstrap-audit-2026-08-27.md](repo-bootstrap-audit-2026-08-27.md).
+Developer-tool filesystem operations are synchronous and local. The validation,
+syntax, index and generation CLIs report failures through nonzero exit and stderr;
+they do not retry. Screenshot and icon scripts read local captures/fonts and write
+owned image outputs. Font fallback emits a RuntimeWarning and preserves size.
+The complete tool/test inventory is in the file index and coverage ledger.

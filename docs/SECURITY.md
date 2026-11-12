@@ -5,7 +5,8 @@ To report a vulnerability, see [.github/SECURITY.md](../.github/SECURITY.md).
 ## Posture
 
 The extension has no server, no account, no telemetry, and no dependencies. It
-talks to exactly one origin, `youtube.com`, and it does so without cookies.
+makes direct requests to YouTube with cookies omitted. The panel fallback uses
+a normal YouTube tab, which follows the browser's existing session.
 Transcript data exists in memory, in `chrome.storage.session` for the moment
 between the popup and the printable viewer, and in whatever PDF the user chose
 to save.
@@ -31,7 +32,8 @@ in this table.
 ## Threat model
 
 **Assets.** The transcript, the user's browsing context (open tab URLs), and
-the user's YouTube session — which the extension deliberately never touches.
+the user's YouTube session. The extension never reads cookies or credentials,
+but a reused or newly opened YouTube tab can use that session.
 
 **Trust boundaries.** Everything crossing from a YouTube page into the
 extension is untrusted: watch-page HTML, caption payloads, and text scraped
@@ -56,7 +58,8 @@ response can only ever become inert text.
 **Information disclosure.** The main risk is transcript data escaping the
 machine. There is no outbound path except YouTube: no analytics, no error
 reporting, no remote logging. `credentials: 'omit'` on every request means the
-extension cannot act as the signed-in user or leak session cookies. The
+direct fetches do not attach session cookies. A panel tab can use its existing
+session; its own page scripts and network activity remain controlled by YouTube. The
 printable viewer deletes its session-storage payload immediately after render
 rather than leaving it for the browser session.
 
@@ -85,7 +88,7 @@ and there is nothing for a leak to expose. `.gitignore` covers `.env` regardless
 
 ## Supply chain
 
-Zero runtime and zero development dependencies. `npm install` has nothing to
+Zero runtime and zero npm development dependencies; optional artwork tools use Pillow. `npm install` has nothing to
 install and CI runs without one. The only third-party code in CI is the pinned
 GitHub Actions, which Dependabot tracks monthly.
 

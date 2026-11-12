@@ -29,6 +29,9 @@ const TAB_LOAD_TIMEOUT_MS = 20000;
 /** Path of the injected transcript-panel reader, relative to the extension root. */
 const SCRAPER_FILE = 'src/content/scrape-transcript.js';
 
+/** Temporary tabs are excluded from reuse by other concurrent requests. */
+const OWNED_TAB_FRAGMENT = '#transcript-to-pdf-export';
+
 /**
  * Error carrying a stable machine-readable code alongside its message, so the
  * popup can show tailored guidance instead of a raw string.
@@ -53,24 +56,30 @@ class TranscriptError extends Error {
  *
  * @param {string} url
  * @param {object} [init]
- * @returns {Promise<Response>}
+ * @returns {Promise<{ok: boolean, status: number, body: string}>}
  */
 async function fetchWithTimeout(url, init = {}) {
+  const target = new URL(url);
+  if (target.protocol !== 'https:' || !['www.youtube.com', 'm.youtube.com'].includes(target.hostname) || target.username || target.password || target.port) {
+    throw new TranscriptError('caption-url', 'YouTube returned an unsupported caption address.');
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       ...init,
       credentials: 'omit',
-      redirect: 'follow',
+      redirect: 'error',
       signal: controller.signal,
     });
+    // A fetch resolves at headers; retain the timer until the body is consumed.
+    return { ok: response.ok, status: response.status, body: await response.text() };
   } catch (error) {
     if (error.name === 'AbortError') {
       throw new TranscriptError('timeout', 'YouTube did not respond in time. Try again.');
     }
-    throw new TranscriptError('network', `Network request failed: ${error.message}`);
+    throw new TranscriptError('network', 'Network request failed. Check your connection and try again.');
   } finally {
     clearTimeout(timer);
   }
@@ -86,6 +95,7 @@ async function loadWatchPage(videoId) {
   // `hl=en` keeps the consent interstitial and track names in a known language.
   // `User-Agent` is a forbidden header name — fetch drops it — but the worker
   // already presents as desktop Chrome, so YouTube serves the full watch page.
+  console.info('Transcript operation:', { operation: 'watch-page', outcome: 'started' });
   const response = await fetchWithTimeout(`${watchUrl(videoId)}&hl=en`, {
     headers: { 'Accept-Language': 'en-US,en;q=0.9' },
   });
@@ -97,7 +107,8 @@ async function loadWatchPage(videoId) {
     );
   }
 
-  return parseWatchPage(await response.text());
+  console.info('Transcript operation:', { operation: 'watch-page', outcome: 'ok' });
+  return parseWatchPage(response.body);
 }
 
 /**
@@ -110,13 +121,18 @@ async function loadWatchPage(videoId) {
 async function loadTrackDirectly(track) {
   for (const url of [`${track.baseUrl}&fmt=json3`, track.baseUrl]) {
     try {
+      console.info('Transcript operation:', { operation: 'caption-download', outcome: 'started' });
       const response = await fetchWithTimeout(url);
-      if (!response.ok) continue;
+      if (!response.ok) {
+        console.warn('Transcript operation:', { operation: 'caption-download', outcome: 'http-error', status: response.status });
+        continue;
+      }
 
-      const segments = parseCaptions(await response.text());
+      const segments = parseCaptions(response.body);
+      console.info('Transcript operation:', { operation: 'caption-download', outcome: segments.length ? 'ok' : 'empty' });
       if (segments.length > 0) return segments;
     } catch (error) {
-      console.warn('Direct caption download failed:', error);
+      console.warn('Direct caption download failed:', { code: error instanceof TranscriptError ? error.code : 'caption-error' });
     }
   }
 
@@ -169,7 +185,7 @@ async function findOpenTab(videoId) {
   const tabs = await chrome.tabs.query({
     url: ['https://www.youtube.com/*', 'https://m.youtube.com/*'],
   });
-  return tabs.find((tab) => tab.url && parseVideoId(tab.url) === videoId) ?? null;
+  return tabs.find((tab) => tab.url && !tab.url.endsWith(OWNED_TAB_FRAGMENT) && parseVideoId(tab.url) === videoId) ?? null;
 }
 
 /**
@@ -182,31 +198,48 @@ async function findOpenTab(videoId) {
  * @returns {Promise<import('../lib/transcript.js').Segment[]>}
  */
 async function readFromTranscriptPanel(videoId) {
+  console.info('Transcript operation:', { operation: 'panel-read', outcome: 'started' });
   const existing = await findOpenTab(videoId);
   let tabId = existing?.id ?? null;
   const opened = tabId === null;
 
   try {
     if (opened) {
-      const tab = await chrome.tabs.create({ url: watchUrl(videoId), active: false });
+      const tab = await chrome.tabs.create({ url: watchUrl(videoId) + OWNED_TAB_FRAGMENT, active: false });
       tabId = tab.id ?? null;
       if (tabId === null) return [];
       await waitForTabLoad(tabId);
     }
 
+    const verifyVideo = async () => {
+      const tab = await chrome.tabs.get(tabId);
+      if (parseVideoId(tab.url ?? '') !== videoId ||
+          (tab.pendingUrl && parseVideoId(tab.pendingUrl) !== videoId)) {
+        throw new TranscriptError('panel-navigation', 'The video tab changed during transcript extraction. Try again.');
+      }
+    };
+    await verifyVideo();
     const [injection] = await chrome.scripting.executeScript({
       target: { tabId },
       files: [SCRAPER_FILE],
     });
 
-    return Array.isArray(injection?.result) ? injection.result : [];
+    await verifyVideo();
+    const segments = Array.isArray(injection?.result) ? injection.result : [];
+    console.info('Transcript operation:', { operation: 'panel-read', outcome: segments.length ? 'ok' : 'empty' });
+    return segments;
   } catch (error) {
-    console.warn('Transcript panel read failed:', error);
+    console.warn('Transcript panel read failed:', { code: error instanceof TranscriptError ? error.code : 'panel-error' });
+    if (error instanceof TranscriptError) throw error;
     return [];
   } finally {
     // Only clean up tabs this function created; never close the user's own.
     if (opened && tabId !== null) {
-      await chrome.tabs.remove(tabId).catch(() => {});
+      try {
+        await chrome.tabs.remove(tabId);
+      } catch {
+        console.warn('Temporary tab cleanup failed:', { operation: 'tab-remove', code: 'cleanup-failed' });
+      }
     }
   }
 }
@@ -215,7 +248,7 @@ async function readFromTranscriptPanel(videoId) {
  * Resolves a user-supplied URL into a full transcript.
  *
  * @param {{url: string, language?: string}} request
- * @returns {Promise<{videoId: string, title: string, author: string|null, language: string, isGenerated: boolean, source: 'timedtext'|'panel', availableLanguages: Array<{code: string, name: string, isGenerated: boolean}>, segments: import('../lib/transcript.js').Segment[]}>}
+ * @returns {Promise<{videoId: string, title: string, author: string|null, language: string, isGenerated: boolean|null, source: 'timedtext'|'panel', availableLanguages: Array<{code: string, name: string, isGenerated: boolean}>, segments: import('../lib/transcript.js').Segment[]}>}
  */
 async function getTranscript(request) {
   const videoId = parseVideoId(request.url);
@@ -232,32 +265,22 @@ async function getTranscript(request) {
     );
   }
 
-  if (!page.parsed) {
-    throw new TranscriptError(
-      'unreadable',
-      'YouTube did not return a usable video page — it may have served a ' +
-        'consent or verification screen. Open the video in a tab and try again.',
-    );
-  }
-
-  if (page.tracks.length === 0) {
-    throw new TranscriptError(
-      'no-captions',
-      'This video has no captions, so there is no transcript to export.',
-    );
-  }
-
   const track = pickTrack(page.tracks, request.language);
 
   let source = 'timedtext';
   let segments = track ? await loadTrackDirectly(track) : [];
 
   if (segments.length === 0) {
+    if (request.language && request.language !== 'auto') {
+      throw new TranscriptError('language-unavailable', 'YouTube blocked the selected caption track. Choose Auto to read the current transcript panel language.');
+    }
     source = 'panel';
     segments = await readFromTranscriptPanel(videoId);
   }
 
   if (segments.length === 0) {
+    if (page.parsed && page.tracks.length === 0) throw new TranscriptError('no-captions', 'YouTube did not expose captions in this page or transcript panel.');
+    if (!page.parsed) throw new TranscriptError('unreadable', 'YouTube did not return a usable video page or transcript panel. Open the video in a tab and try again.');
     throw new TranscriptError(
       'blocked',
       'YouTube would not release the captions. Open the video in a tab, click ' +
@@ -269,8 +292,8 @@ async function getTranscript(request) {
     videoId,
     title: page.title ?? `YouTube video ${videoId}`,
     author: page.author ?? null,
-    language: track?.languageCode ?? 'unknown',
-    isGenerated: Boolean(track?.isGenerated),
+    language: source === 'timedtext' ? track.languageCode : 'unknown',
+    isGenerated: source === 'timedtext' ? Boolean(track.isGenerated) : null,
     source,
     availableLanguages: page.tracks.map((t) => ({
       code: t.languageCode,
@@ -294,7 +317,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     try {
       sendResponse(payload);
     } catch (error) {
-      console.warn('Popup closed before the transcript was delivered:', error);
+      console.warn('Popup closed before the transcript was delivered:', { code: 'popup-closed' });
     }
   };
 
@@ -302,12 +325,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     try {
       reply({ ok: true, data: await getTranscript(message) });
     } catch (error) {
-      console.error('Transcript fetch failed:', error);
+      console.error('Transcript fetch failed:', { code: error instanceof TranscriptError ? error.code : 'unknown' });
       reply({
         ok: false,
         error: {
           code: error instanceof TranscriptError ? error.code : 'unknown',
-          message: error?.message ?? 'Something went wrong.',
+          message: error instanceof TranscriptError ? error.message : 'Something went wrong. Try again.',
         },
       });
     }

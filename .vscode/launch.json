@@ -5,7 +5,6 @@
       "name": "Run unit tests",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/node",
       "runtimeExecutable": "node",
       "runtimeArgs": ["--test"],
       "cwd": "${workspaceFolder}",

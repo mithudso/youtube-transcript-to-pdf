@@ -17,12 +17,11 @@
 
 /** Entities the legacy XML feed escapes. Order matters: `&amp;` runs last. */
 const XML_ENTITIES = [
-  [/&#39;/g, "'"],
+  [/&apos;/g, "'"],
   [/&quot;/g, '"'],
   [/&lt;/g, '<'],
   [/&gt;/g, '>'],
   [/&nbsp;/g, ' '],
-  [/&amp;/g, '&'],
 ];
 
 /**
@@ -49,7 +48,15 @@ function decodeEntities(text) {
   for (const [pattern, replacement] of XML_ENTITIES) {
     out = out.replace(pattern, replacement);
   }
-  return out;
+  out = out.replace(/&#(x[0-9a-f]+|\d+);/gi, (reference, value) => {
+    const code = value[0].toLowerCase() === 'x' ? Number.parseInt(value.slice(1), 16) : Number(value);
+    const valid = code === 9 || code === 10 || code === 13 ||
+      (code >= 0x20 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0xfffd) ||
+      (code >= 0x10000 && code <= 0x10ffff);
+    return valid ? String.fromCodePoint(code) : reference;
+  });
+  // The feed has an application escaping layer as well as XML; callers decode twice.
+  return out.replace(/&amp;/g, '&');
 }
 
 /**
@@ -68,17 +75,22 @@ export function parseJson3(body) {
 
   const events = Array.isArray(data?.events) ? data.events : [];
   const segments = [];
+  const seconds = (value) => {
+    if (typeof value !== 'number' && typeof value !== 'string') return 0;
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(0, number) / 1000 : 0;
+  };
 
   for (const event of events) {
     if (!Array.isArray(event?.segs)) continue;
 
-    const text = normalise(event.segs.map((seg) => seg?.utf8 ?? '').join(''));
+    const text = normalise(event.segs.map((seg) => typeof seg?.utf8 === 'string' ? seg.utf8 : '').join(''));
     // Auto-generated tracks emit empty "roll-up" events; skip them.
     if (!text) continue;
 
     segments.push({
-      start: (event.tStartMs ?? 0) / 1000,
-      duration: (event.dDurationMs ?? 0) / 1000,
+      start: seconds(event.tStartMs),
+      duration: seconds(event.dDurationMs),
       text,
     });
   }
@@ -89,7 +101,7 @@ export function parseJson3(body) {
 /**
  * Parses the legacy XML timedtext payload.
  *
- * Uses a regex rather than DOMParser so the same code runs inside the service
+ * Uses a forward-only scan rather than DOMParser so the same code runs inside the service
  * worker, where DOMParser is unavailable.
  *
  * @param {string} body Raw response body.
@@ -97,21 +109,29 @@ export function parseJson3(body) {
  */
 export function parseTimedTextXml(body) {
   const segments = [];
-  const cue = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
-
-  let match;
-  while ((match = cue.exec(body)) !== null) {
-    const attrs = match[1];
-    const start = Number(/\bstart="([^"]*)"/.exec(attrs)?.[1] ?? 0);
-    const duration = Number(/\bdur="([^"]*)"/.exec(attrs)?.[1] ?? 0);
-
-    // The payload is double-escaped: entities wrap tags, which wrap entities.
-    const text = normalise(decodeEntities(decodeEntities(match[2]).replace(/<[^>]*>/g, ' ')));
+  let cursor = 0;
+  while (cursor < body.length) {
+    const startTag = body.indexOf('<text', cursor);
+    if (startTag === -1) break;
+    cursor = startTag + 5;
+    if (!/[\s>]/.test(body[cursor] ?? '')) continue;
+    const tagEnd = body.indexOf('>', cursor);
+    if (tagEnd === -1) break;
+    if (/\/\s*$/.test(body.slice(cursor, tagEnd))) { cursor = tagEnd + 1; continue; }
+    const end = body.indexOf('</text>', tagEnd + 1);
+    if (end === -1) break;
+    const attrs = body.slice(cursor, tagEnd);
+    const start = Number(/(?:^|\s)start\s*=\s*(["'])([\s\S]*?)\1/.exec(attrs)?.[2] ?? 0);
+    const duration = Number(/(?:^|\s)dur\s*=\s*(["'])([\s\S]*?)\1/.exec(attrs)?.[2] ?? 0);
+    // Remove actual XML child markup before decoding literal caption text.
+    const text = normalise(decodeEntities(decodeEntities(
+      body.slice(tagEnd + 1, end).replace(/<[^<>]*>/g, ' '),
+    )));
+    cursor = end + '</text>'.length;
     if (!text) continue;
-
     segments.push({
-      start: Number.isFinite(start) ? start : 0,
-      duration: Number.isFinite(duration) ? duration : 0,
+      start: Number.isFinite(start) ? Math.max(0, start) : 0,
+      duration: Number.isFinite(duration) ? Math.max(0, duration) : 0,
       text,
     });
   }
@@ -139,7 +159,8 @@ export function parseCaptions(body) {
  * @returns {string}
  */
 export function formatTimestamp(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const value = Number(seconds);
+  const total = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const secs = total % 60;

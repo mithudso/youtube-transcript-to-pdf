@@ -19,11 +19,18 @@ const HELVETICA_WIDTHS = [
   556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
 ];
 
-/** Fallback width for anything outside the measured range. */
-const DEFAULT_WIDTH = 556;
+/** Helvetica-Bold advance widths for the same WinAnsi ASCII range. */
+const HELVETICA_BOLD_WIDTHS = [
+  278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611,
+  975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556,
+  333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611,
+  611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
+];
 
-/** Bold glyphs run wider than regular; scale rather than ship a second table. */
-const BOLD_WIDTH_FACTOR = 1.08;
+/** Conservative bound for Latin-1 glyphs outside the ASCII tables. */
+const DEFAULT_WIDTH = 1015;
 
 /** Characters that have a sensible Latin-1 stand-in. */
 const TRANSLITERATIONS = new Map([
@@ -64,23 +71,21 @@ export function toWinAnsi(text) {
 }
 
 /**
- * Measures a already-transliterated string in points.
+ * Measures an already-transliterated string in integer font advance units.
  *
  * @param {string} text
- * @param {number} fontSize
  * @param {boolean} bold
  * @returns {number}
  */
-function measure(text, fontSize, bold) {
+function measureUnits(text, bold) {
   let width = 0;
   for (let i = 0; i < text.length; i += 1) {
     const code = text.charCodeAt(i);
     const glyph =
-      code >= 32 && code <= 126 ? HELVETICA_WIDTHS[code - 32] : DEFAULT_WIDTH;
+      code >= 32 && code <= 126 ? (bold ? HELVETICA_BOLD_WIDTHS : HELVETICA_WIDTHS)[code - 32] : DEFAULT_WIDTH;
     width += glyph;
   }
-  const scaled = (width / 1000) * fontSize;
-  return bold ? scaled * BOLD_WIDTH_FACTOR : scaled;
+  return width;
 }
 
 /**
@@ -98,32 +103,36 @@ export function wrapText(text, maxWidth, fontSize, bold = false) {
   if (words.length === 0) return [''];
 
   const lines = [];
-  let line = '';
+  let line = '', lineUnits = 0;
+  const spaceUnits = measureUnits(' ', bold);
+  const fits = (units) => (units / 1000) * fontSize <= maxWidth;
 
-  /** Hard-splits an over-long word across as many lines as it needs. */
+  /** Splits a word using cumulative integer advances instead of rescanning prefixes. */
   const pushOversized = (word) => {
-    let chunk = '';
+    let chunk = '', units = 0;
     for (const char of word) {
-      if (chunk && measure(chunk + char, fontSize, bold) > maxWidth) {
+      const next = measureUnits(char, bold);
+      if (chunk && !fits(units + next)) {
         lines.push(chunk);
-        chunk = char;
-      } else {
-        chunk += char;
-      }
+        chunk = char; units = next;
+      } else { chunk += char; units += next; }
     }
-    return chunk;
+    return { text: chunk, units };
   };
 
   for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-
-    if (measure(candidate, fontSize, bold) <= maxWidth) {
-      line = candidate;
+    const wordUnits = measureUnits(word, bold);
+    const candidateUnits = lineUnits + (line ? spaceUnits : 0) + wordUnits;
+    if (fits(candidateUnits)) {
+      line = line ? `${line} ${word}` : word;
+      lineUnits = candidateUnits;
       continue;
     }
-
     if (line) lines.push(line);
-    line = measure(word, fontSize, bold) > maxWidth ? pushOversized(word) : word;
+    if (!fits(wordUnits)) {
+      const chunk = pushOversized(word);
+      line = chunk.text; lineUnits = chunk.units;
+    } else { line = word; lineUnits = wordUnits; }
   }
 
   if (line) lines.push(line);
@@ -166,6 +175,11 @@ export function buildTranscriptPdf(options) {
   const page = PAGE_SIZES[options.pageSize ?? 'letter'] ?? PAGE_SIZES.letter;
   const margin = options.margin ?? 54;
   const fontSize = options.fontSize ?? 11;
+  if (!Number.isFinite(fontSize) || fontSize <= 1 ||
+      !Number.isFinite(margin) || margin < 0 ||
+      page.width - margin * 2 < (fontSize + 6) * 1.1 || margin * 2 + (fontSize + 6) * 1.45 + fontSize * 1.45 >= page.height) {
+    throw new RangeError('PDF font size and margins must leave usable space on the page.');
+  }
   const lineHeight = fontSize * 1.45;
   const contentWidth = page.width - margin * 2;
   const bottomLimit = margin + lineHeight;
@@ -204,7 +218,7 @@ export function buildTranscriptPdf(options) {
       `${r} ${g} ${b} rg`,
       `/${style.bold ? 'F2' : 'F1'} ${size} Tf`,
       `1 0 0 1 ${x.toFixed(2)} ${cursorY.toFixed(2)} Tm`,
-      `(${escapePdfString(text)}) Tj`,
+      `(${escapePdfString(toWinAnsi(text))}) Tj`,
       'ET',
     );
   };
@@ -231,11 +245,9 @@ export function buildTranscriptPdf(options) {
   // --- Body --------------------------------------------------------------
   for (const block of options.blocks ?? []) {
     if (block.timestamp) {
-      drawLine(block.timestamp, {
-        size: fontSize - 1,
-        bold: true,
-        color: [0.78, 0.13, 0.16],
-      });
+      for (const line of wrapText(block.timestamp, contentWidth, fontSize - 1, true)) {
+        drawLine(line, { size: fontSize - 1, bold: true, color: [0.78, 0.13, 0.16] });
+      }
     }
     for (const line of wrapText(block.text, contentWidth, fontSize, false)) {
       drawLine(line, { size: fontSize });
@@ -354,5 +366,6 @@ export function toSafeFilename(title) {
     .replace(/[.\s]+$/, '')
     .slice(0, 120)
     .trim();
-  return `${base || 'transcript'}.pdf`;
+  const portable = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(base) ? `_${base}` : base;
+  return `${portable.slice(0, 120) || 'transcript'}.pdf`;
 }

@@ -15,3 +15,10 @@ store-assets/end-to-end-proof.mov
 store-assets/rawpopup-live.png
 store-assets/*.mov
 store-assets/*.mp4
+
+# Local Python asset tooling and editor/runtime state.
+__pycache__/
+*.py[cod]
+.venv/
+.env.*
+*.swp

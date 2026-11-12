@@ -1,79 +1,26 @@
 # Logging
 
-## Approach
+The extension uses local browser consoles and user-visible status messages.
+It has no file sink, remote error reporter or telemetry endpoint.
 
-The extension logs to the browser console. There is no log file, no remote
-sink, and no telemetry — a log statement here exists so a developer or a user
-filing an issue can see what happened, and nothing else.
-
-Because there is no aggregation layer, logs are written to be readable by a
-human reading a console, not parsed by a machine.
-
-## Where logs appear
-
-Three separate consoles, and a message is only ever in one of them.
-
-| Context | Where to open it |
-| --- | --- |
-| Service worker | `chrome://extensions` → the extension's **service worker** link |
-| Popup | Right-click the popup → **Inspect** |
-| Content script | The YouTube tab's own DevTools console |
-| Viewer | The viewer tab's DevTools console |
-
-## Levels
-
-| Level | Used for | Examples |
+| Context | Where to inspect | Signals |
 | --- | --- | --- |
-| `console.error` | An operation failed and the user is being told | `Transcript fetch failed:` in the service worker's message handler |
-| `console.warn` | A path failed but the code recovered or fell through | Direct caption download failed; transcript panel read failed; popup closed before delivery |
-| `console.log` | Not used in extension code | Only in `scripts/*.mjs`, where the console **is** the output |
+| Worker | Extension service-worker DevTools | `Transcript operation:` records identify watch-page, caption-download and panel-read attempts/outcomes; warnings identify stable failure/cleanup codes |
+| Content script | YouTube tab DevTools | Panel timeout/open failure and counts of skipped invalid timestamps and ambiguous captions |
+| Popup | Popup DevTools and status line | Fetch, Print, clipboard and preference errors appear in the UI with safe operation/code diagnostics; download interruption/state-query and cleanup warnings use stable codes |
+| Viewer | Viewer tab DevTools and document | Storage/handoff errors produce a safe warning and an actionable message |
+| Tooling | Terminal stdout/stderr | Completion after writes; nonzero exit and diagnostics on failure; optional font fallback warns with its requested size |
 
-`console.info` and `console.debug` are unused. Adding a debug level would mean
-adding a way to switch it on, which is more machinery than this earns.
+`console.info` records operation transitions, `console.warn` records recovered
+failures, and `console.error` records terminal worker failures. Pure `src/lib/`
+functions retain their return-value/error contracts instead of logging caption data.
+An empty/invalid caption result is observed and logged by the worker at the call boundary.
 
-## What is logged today
+Never log transcript text, signed caption URLs, session payloads, cookies, tokens,
+or raw transport exceptions that can contain those values. Use stable codes and
+counts. UI error text stays in the user's local extension page.
 
-| Path | Level | Message |
-| --- | --- | --- |
-| `service-worker.js` message handler | `error` | Any failure reaching the user, with the error object |
-| `service-worker.js` reply after popup close | `warn` | Port gone; the fetch completed with nobody listening |
-| `service-worker.js` `loadTrackDirectly` | `warn` | A direct caption attempt threw — expected often, hence `warn` |
-| `service-worker.js` `readFromTranscriptPanel` | `warn` | Injection or the panel read failed |
-| `scrape-transcript.js` `openPanel` | `warn` | Could not open the transcript panel |
-| `popup.js` | none | Failures surface in the UI status line instead |
-
-## Rules
-
-**Every catch block either logs or surfaces the error to the user.** A silently
-swallowed error is a bug. In the popup, "surfaces to the user" means the status
-line, which is why the popup has no `console.error` calls — the user sees the
-message directly.
-
-**Log the outcome of every external call.** Both caption strategies log their
-failures. A successful fetch is not logged, because the transcript appearing in
-the UI is the success signal.
-
-**Never log secrets or personal data.** There are no credentials in this
-project, so the practical rule is narrower but still real:
-
-- Do not log full signed caption `baseUrl` values. They carry session-scoped
-  signature parameters.
-- Do not log transcript text. It is the user's content and can be long. Log
-  counts instead.
-- Video ids, titles, and language codes are fine — they are public metadata the
-  user just asked about.
-
-**Log the error object, not a stringified summary.** `console.error('...', error)`
-keeps the stack. `console.error('...' + error.message)` throws it away.
-
-## Testing logs
-
-There is no assertion on log output today, because the logging lives entirely in
-the `chrome.*` layer, which has no automated coverage. If logging moves into
-`src/lib/`, the logger should be injected so a test can assert on it — see
-[TESTING.md](TESTING.md).
-
-## If you add a log
-
-Ask whether a developer reading it six months from now, with no memory of the
-code, would learn something from it. If not, it is noise.
+`test/service-worker.test.js` checks that signed parameters stay out of logs and
+cleanup failures remain observable. Content-script, popup and viewer regressions
+assert terminal outcomes and safe diagnostic fields. A console warning alone does
+not establish live network or browser compatibility.

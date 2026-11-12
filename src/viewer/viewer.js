@@ -51,21 +51,36 @@ function render(payload) {
   container.append(fragment);
 }
 
-document.getElementById('print').addEventListener('click', () => window.print());
+const printButton = document.getElementById('print');
+let ready = false;
+printButton.disabled = true;
+printButton.addEventListener('click', () => { if (ready) window.print(); });
 
 (async () => {
-  const stored = await chrome.storage.session.get(VIEWER_KEY);
-  const payload = stored[VIEWER_KEY];
-
+  const requested = new URLSearchParams(location.search).get('payload');
+  const key = requested ?? VIEWER_KEY;
+  if (key !== VIEWER_KEY && !key.startsWith(`${VIEWER_KEY}:`)) {
+    throw new Error('Invalid print handoff.');
+  }
+  const stored = await chrome.storage.session.get(key);
+  const payload = stored[key];
   if (!payload) {
     const message = document.createElement('p');
     message.textContent = 'No transcript to show. Fetch one from the extension popup first.';
     container.append(message);
     return;
   }
-
-  // The payload is a one-shot handoff; drop it so the transcript does not sit
-  // in session storage for the rest of the browser session.
-  await chrome.storage.session.remove(VIEWER_KEY);
-  render(payload);
-})();
+  try {
+    render(payload);
+    ready = true;
+    printButton.disabled = false;
+  } finally {
+    // Render first so a cleanup error cannot hide an otherwise usable transcript.
+    await chrome.storage.session.remove(key);
+  }
+})().catch(() => {
+  console.warn('Viewer handoff failed:', { code: 'viewer-storage' });
+  const message = document.createElement('p');
+  message.textContent = 'Could not open or clear the temporary transcript. Try Print again, or close the browser to clear session storage.';
+  container.append(message);
+});

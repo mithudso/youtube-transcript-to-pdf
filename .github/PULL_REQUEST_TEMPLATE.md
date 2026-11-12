@@ -14,6 +14,10 @@
 - [ ] Loaded unpacked in Chrome and exercised the changed path
 - [ ] Tested against a video with human captions **and** one with auto-generated captions
 
+## Rollback
+
+<!-- Describe how to revert this change. Store releases need a higher version. -->
+
 ## Risk
 
 <!-- Delete the rows that do not apply. -->

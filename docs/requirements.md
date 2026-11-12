@@ -21,21 +21,22 @@
 | ID | Requirement | How it is met |
 | --- | --- | --- |
 | N1 | No transcript data leaves the machine. | No backend, no analytics, no error reporting. Only origin contacted is `youtube.com`. |
-| N2 | The user's YouTube session is never used. | `credentials: 'omit'` on every request. |
+| N2 | Direct fetches omit credentials. | The service worker omits cookies; a normal tab used for panel reads follows its existing session. The extension does not read credentials. |
 | N3 | Permissions stay minimal and justified. | Five narrow permissions, each with a row in [SECURITY.md](SECURITY.md). No `<all_urls>`. |
 | N4 | No third-party runtime code. | Zero dependencies; the PDF writer is hand-written. |
 | N5 | Work survives the popup closing. | All network and tab work lives in the service worker. |
 | N6 | Requests cannot hang indefinitely. | 15s fetch timeout, 20s tab-load timeout. |
 | N7 | Generated PDFs are structurally valid. | Cross-reference offsets verified byte-for-byte in `test/pdf.test.js`. |
 | N8 | Page-derived text can never execute. | `textContent` only; no `innerHTML`, `eval`, or `new Function`; extension CSP. |
-| N9 | Verifiable without a browser in CI. | Pure modules in `src/lib/` carry no `chrome.*`; 31 tests run on plain Node. |
+| N9 | Verifiable without a browser in CI. | Pure modules and synthetic API regressions run on plain Node; live compatibility is separately checked. |
 | N10 | Broken references fail loudly. | `lint:manifest` checks icon dimensions and file paths; `lint:docs` checks index paths. |
 
 ## Dependencies
 
 **Runtime:** none.
-**Development:** Node 20+ (test runner, tooling), `zip` (packaging, present on
+**Development:** Node 22+ (test runner, tooling), `zip` (packaging, present on
 macOS and Linux).
+**Optional artwork tooling:** Python 3.11+ and Pillow 13.0.0 (verified), already imported by the asset scripts; not needed for core checks.
 **External services:** `youtube.com` only.
 
 ## Out of scope

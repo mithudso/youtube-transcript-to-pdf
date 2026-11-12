@@ -1,20 +1,22 @@
 {
   "name": "youtube-transcript-to-pdf",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrome extension that fetches a YouTube video transcript from its URL and exports it as a PDF.",
   "type": "module",
   "private": true,
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "test": "node --test",
     "lint:manifest": "node scripts/validate-manifest.mjs",
-    "lint:docs": "node scripts/check-doc-indexes.mjs",
-    "check": "npm run lint:manifest && npm test && npm run lint:docs",
+    "lint:docs": "node scripts/generate-doc-index.mjs --check && node scripts/check-doc-indexes.mjs",
+    "check": "npm run lint:syntax && npm run lint:manifest && npm test && npm run lint:docs",
     "build": "node scripts/package-extension.mjs",
-    "store:assets": "node scripts/build-store-assets.mjs"
+    "store:assets": "node scripts/build-store-assets.mjs",
+    "lint:syntax": "node scripts/check-syntax.mjs",
+    "docs:generate": "node scripts/generate-doc-index.mjs"
   },
   "repository": {
     "type": "git",

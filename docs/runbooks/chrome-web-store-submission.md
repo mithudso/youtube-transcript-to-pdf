@@ -37,7 +37,7 @@ git pull
 npm run check
 ```
 
-Expect: manifest OK, 31 tests passing, doc indexes OK.
+Expect: manifest OK, all tests passing, doc indexes OK.
 
 Then reload the unpacked extension at `chrome://extensions` and run it once
 against a real video. The packaged build is the same code, so if the unpacked
@@ -55,7 +55,7 @@ Expect `HTTP/2 200`.
 
 ```bash
 npm run build
-unzip -l dist/youtube-transcript-to-pdf-1.0.0.zip
+unzip -l dist/youtube-transcript-to-pdf-1.0.1.zip
 ```
 
 Expect 24 files: `manifest.json`, `icons/`, `src/`, `LICENSE`. If you see
@@ -65,7 +65,7 @@ the packaging script.
 The file you will upload is:
 
 ```
-dist/youtube-transcript-to-pdf-1.0.0.zip
+dist/youtube-transcript-to-pdf-1.0.1.zip
 ```
 
 ## Step 2 — Register as a developer (one time)
@@ -83,7 +83,7 @@ Publishing is blocked until the contact email is verified.
 ## Step 3 — Create the item
 
 1. **Items** → **Add new item**.
-2. Drag in `dist/youtube-transcript-to-pdf-1.0.0.zip`.
+2. Drag in `dist/youtube-transcript-to-pdf-1.0.1.zip`.
 3. Wait for the upload to parse. It reads `manifest.json`, so the name and
    version populate themselves.
 
