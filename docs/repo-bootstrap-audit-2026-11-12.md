@@ -46,3 +46,14 @@ The guarded follow-up suite passes 114 Node tests and four Pillow tests before f
 Final delivery requires reviewed task-owned staging, commit/push, passing checks on the final PR commit, merge, exact remote-default content verification, safe original checkout sync and cleanup of only the clean owned worktree/branch. The merged PR and local canonical receipt carry that evidence; a draft or queued merge is not completion.
 
 Snapshot/rollback is in the [optimizer report](code-deep-optimizer-2026-11-12.md#10-snapshot-and-rollback). Full coverage and exclusions are in the [coverage ledger](maintenance-coverage-2026-11-12.md).
+
+## Existing GitHub Pages compatibility follow-up
+
+After the maintenance merge, CI passed, but the existing Pages/Jekyll 3.10
+build parsed JSDoc braces in the optimizer diff excerpt as Liquid syntax. The
+optimizer report now uses a Liquid raw block inside HTML comments. This keeps
+the source excerpt intact, hides the control tags on GitHub, and lets the
+existing Pages renderer handle the report. The behavior follows the
+[Liquid raw tag](https://shopify.github.io/liquid/tags/template/#raw) contract. No site configuration, runtime
+dependency or deployment workflow was added. Local Ruby has no Liquid gem; the
+actual GitHub Pages build is the compatibility gate.
