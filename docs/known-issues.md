@@ -49,13 +49,20 @@ Strategy 1 usually returns an empty body and the extension falls through to
 strategy 2. The code is kept because it is fast when it works and costs one
 request when it does not.
 
-### No coverage of the `chrome.*` layer
+### Live YouTube compatibility needs browser verification
 
-**Severity:** medium
+Synthetic tests cover worker/popup/viewer control flow and panel extraction.
+Disposable Chrome checks cover native API wiring. YouTube's private page markup
+and anti-bot/session behavior still require the [live manual plan](TESTING.md).
+The 2026-11-12 public-video baseline ended with `blocked`; do not interpret the
+synthetic checks as a successful current live export.
 
-The service worker, popup, content script, and viewer have no automated tests.
-Mocking the extension API would test the mock. The
-[manual test plan](TESTING.md#manual-test-plan) covers this instead.
+### Panel language is not verified
+
+Auto may read the currently selected panel language. The panel does not return
+verified track metadata, so the extension reports `unknown`. An explicit language
+whose direct download fails returns an error instead of mislabeling panel text.
+Choose Auto to use the panel as currently displayed.
 
 ## Videos that will never work
 
@@ -80,3 +87,15 @@ Mocking the extension API would test the mock. The
 
 Open an issue with the video URL, whether its captions are auto-generated, and
 anything red in the service worker console.
+
+Panel extraction rejects a tab whose video changes during the read. Hidden rows
+and ambiguous structural text are skipped rather than mislabeled. If a fallback
+caption has the same shape as metadata and lacks a recognized caption selector,
+that cue may be omitted with an `ambiguous-caption` diagnostic. Live YouTube
+compatibility still requires the manual release plan.
+
+The final bounded audit retained BLIND-AUDIT-DISSENT after its second attempt.
+All corroborated findings were repaired and regression-tested; the repaired
+bytes did not receive a third independent gate. See the dated optimizer report
+for exact coverage. Structural rows without a reliable caption/timestamp binding
+may be skipped rather than exported with guessed content or timing.

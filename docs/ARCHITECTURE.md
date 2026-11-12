@@ -63,9 +63,9 @@ leave open long enough for the popup to close.
 
 `youtube.js`, `transcript.js`, and `pdf.js` are pure. They take strings and
 return data. That makes them runnable — and therefore testable — under plain
-Node, which is where all 31 tests live. Everything that needs an extension API
-sits in the service worker, popup, content script, or viewer, none of which are
-unit-tested.
+Node, which is where all tests live. Everything that needs an extension API
+sits in the service worker, popup, content script, or viewer, whose control flow is covered by synthetic regression tests. Native browser
+and live YouTube checks remain separate.
 
 This boundary is the single most important structural rule in the codebase.
 
@@ -115,10 +115,10 @@ panel that YouTube already rendered for the user is stable in intent even when
 the markup shifts, and it fails visibly rather than silently.
 
 **ADR-003 — `credentials: 'omit'` on every request.**
-*Accepted.* The extension never needs the user's YouTube session. Omitting
-cookies means it cannot act as the user, and it drops the whole class of
-concerns about an extension with access to a logged-in session. It costs
-nothing, since cookies did not unlock captions anyway.
+*Accepted.* Direct service-worker fetches omit cookies. The panel fallback
+runs in a normal browser tab and can use the tab's existing session. The
+extension does not read cookies or credentials. These are different trust
+boundaries and must be described separately in privacy disclosures.
 
 **ADR-004 — Zero dependencies.**
 *Accepted.* Keeps CI install-free, removes supply-chain risk from a

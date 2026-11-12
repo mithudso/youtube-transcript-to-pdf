@@ -21,7 +21,7 @@ third-party service. Everything runs locally in the browser.
 ## Install (unpacked)
 
 ```bash
-git clone https://github.com/<you>/youtube-transcript-to-pdf.git
+git clone https://github.com/mithudso/youtube-transcript-to-pdf.git
 cd youtube-transcript-to-pdf
 ```
 
@@ -78,16 +78,17 @@ plain Node.
 | `host_permissions` on `youtube.com` | Fetch watch pages and caption tracks. Scoped to YouTube only. |
 
 No analytics, no telemetry, no remote code. Transcript data never leaves the
-machine. Requests to YouTube are sent with `credentials: 'omit'`, so the user's
-YouTube session is not attached.
+machine. Direct fetches use `credentials: 'omit'`. The transcript-panel fallback uses a
+normal YouTube tab, which can use the browser's existing YouTube session. The
+extension does not read cookies or credentials.
 
 ## Development
 
 ```bash
-npm test              # 31 unit tests over the pure modules
+npm test              # unit and regression tests over modules and browser control flow
 npm run lint:manifest # manifest + icon-dimension validation
 npm run lint:docs     # documentation index validation
-npm run check         # all three
+npm run check         # syntax, manifest, tests and docs
 npm run build         # dist/youtube-transcript-to-pdf-<version>.zip
 ```
 
@@ -116,6 +117,7 @@ and the bar for a pull request.
 
 | Doc | Covers |
 | --- | --- |
+| [Documentation index](docs/wiki/index.md) | All maintained documentation and audit reports |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The proof-of-origin constraint, the two strategies, design decisions |
 | [docs/COMPONENTS.md](docs/COMPONENTS.md) | Every module, its exports and dependencies |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Setup, the reload matrix, debugging, troubleshooting |
@@ -128,8 +130,10 @@ and the bar for a pull request.
 
 ## Privacy
 
-No data is collected, stored, or transmitted. The only host the extension can
-reach is `youtube.com`, and requests are made without your cookies attached.
+The extension sends no transcripts to a backend or analytics service. Formatting
+preferences and a temporary print handoff stay in local browser storage. Direct
+fetches omit cookies; a YouTube tab used for the panel fallback follows that
+tab's ordinary session and network behavior.
 Full policy: [PRIVACY.md](PRIVACY.md)
 ([published copy](https://mithudso.github.io/youtube-transcript-to-pdf/PRIVACY.html)).
 

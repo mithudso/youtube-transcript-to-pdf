@@ -1,12 +1,13 @@
 # Privacy Policy for Transcript to PDF for YouTube
 
-**Last updated: 27 August 2026**
+**Last updated: 12 November 2026**
 
 ## Summary
 
-This extension does not collect, store, or transmit any personal data. Nothing
-you do with it is sent anywhere. There is no server, no account, no analytics,
-and no third-party service of any kind.
+This extension has no backend, account, analytics, or remote error-reporting
+service. It requests video pages and captions from YouTube to perform an export.
+Formatting preferences and a temporary print handoff stay in your browser's
+extension storage. The extension does not upload transcripts to another service.
 
 ## What data the extension handles
 
@@ -40,12 +41,14 @@ watch page and, where YouTube allows it, the caption track. When YouTube blocks
 the direct caption request, the extension instead opens the video in a browser
 tab and reads the transcript panel YouTube itself renders.
 
-All requests are made with credentials omitted, meaning **your YouTube cookies
-and session are never attached**. The extension cannot see who you are on
-YouTube and cannot act on your behalf.
+Direct requests from the service worker use `credentials: 'omit'`, so those
+requests do not carry your YouTube cookies. The panel fallback opens or reuses
+a normal YouTube tab. That tab follows the browser's usual cookie and sign-in
+behavior and can make YouTube's own page requests. The extension reads the
+rendered transcript and does not read cookies, tokens, or account credentials.
 
-No request is made to any other host. There is no telemetry endpoint, no crash
-reporter, no update check, and no advertising or analytics network.
+The extension has no telemetry endpoint, crash reporter, advertising integration,
+or custom update check. Chrome manages extension updates separately.
 
 ## Third-party services
 
@@ -61,8 +64,11 @@ producing the transcript you asked for.
 ## Data retention and deletion
 
 Your formatting preferences persist until you remove the extension, which
-deletes them. The temporary print handoff is deleted immediately after use.
-Transcripts are not retained at all.
+deletes them. The temporary print handoff is deleted after rendering. If cleanup fails, the
+viewer reports it; closing the browser clears session storage.
+Apart from that handoff, the extension keeps the active transcript in popup
+memory until a refetch or closing the popup. Copied text follows your operating
+system clipboard retention, and downloaded files remain under your control.
 
 PDFs you save are ordinary files on your computer. The extension has no access
 to them once they are written, and removing the extension does not affect them.

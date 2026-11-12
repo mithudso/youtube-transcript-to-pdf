@@ -1,7 +1,8 @@
 # Chrome Web Store Listing — Transcript to PDF for YouTube
 
-> Last Updated: 2026-08-27
-> Submission status: **not yet submitted.** See [Blockers](#blockers-before-first-submission).
+> Last Updated: 2026-11-12
+> Last recorded store status: **Draft, 2026-08-27**. Current publication status is unverified.
+> Version 1.0.1 maintenance changes require a fresh live release check before any store upload.
 
 ## Store Listing
 
@@ -40,7 +41,7 @@ How to use it:
 
 About privacy:
 
-This extension has no server, no account, no analytics, and no third-party code. Your transcripts never leave your computer — the PDF is generated in your browser and saved directly to your downloads. The only site the extension can reach is youtube.com, and it requests pages without your cookies attached, so it cannot see who you are on YouTube or act on your behalf.
+This extension has no server, no account, no analytics, and no third-party code. Your transcripts never leave your computer — the PDF is generated in your browser and saved directly to your downloads. Direct requests to YouTube omit cookies. The panel fallback uses a normal YouTube tab, which follows the browser's existing sign-in and cookie behavior. The extension does not read cookies or account credentials.
 
 A note on how it works:
 
@@ -117,9 +118,9 @@ below. Use those, not this table — the pipes and backticks here are markdown.
 
 | Permission | Type | Justification |
 |------------|------|---------------|
-| `tabs` | permissions | Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs are used in memory only and are never stored or transmitted. |
-| `scripting` | permissions | Injects a single content script into a YouTube video tab, on demand, to read the transcript panel. This is required because YouTube refuses direct caption downloads that lack a browser-issued token, so the only reliable source is the panel YouTube renders itself. The script is not declared in the manifest and therefore never runs unless the user has asked for a transcript. |
-| `storage` | permissions | Stores two booleans — whether timestamps and paragraph grouping are enabled — so the user's formatting choices survive closing the popup. Also used to pass the transcript from the popup to the printable page, where it is deleted immediately after rendering. Local only; `chrome.storage.sync` is not used. |
+| `tabs` | permissions | Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs identify the requested video locally; canonical video requests go to YouTube. They are not retained or uploaded to another service. |
+| `scripting` | permissions | Injects a single content script into a YouTube video tab, on demand, to read the transcript panel. This is required because YouTube refuses direct caption downloads that lack a browser-issued token, so the fallback reads the panel YouTube renders itself, subject to its current markup. The script is not declared in the manifest and therefore never runs unless the user has asked for a transcript. |
+| `storage` | permissions | Stores two booleans — whether timestamps and paragraph grouping are enabled — so the user's formatting choices survive closing the popup. Also used to pass the transcript from the popup to the printable page, where that handoff key is deleted after rendering. Cleanup failures are reported. Local only; `chrome.storage.sync` is not used. |
 | `downloads` | permissions | Saves the generated PDF to the user's downloads folder. This is the extension's primary output and there is no other way to write the file. |
 | `https://www.youtube.com/*` | host_permissions | Fetches the video's watch page, which carries the title, channel, and caption track list, and fetches the caption track itself. Also the page into which the transcript reader is injected. |
 | `https://m.youtube.com/*` | host_permissions | The same, for users whose open tab is on the mobile YouTube host, so an already-open tab can be reused rather than opening a duplicate. |
@@ -140,15 +141,15 @@ host permissions.
 
 ### tabs
 
-Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs are used in memory only and are never stored or transmitted.
+Reads the URL of the active tab so the extension can prefill the input with the video the user is already watching, and searches open tabs for one already showing the requested video so it can reuse that tab instead of opening another. Tab URLs identify the requested video locally; canonical video requests go to YouTube. They are not retained or uploaded to another service.
 
 ### scripting
 
-Injects a single content script into a YouTube video tab, on demand, to read the transcript panel. This is required because YouTube refuses direct caption downloads that lack a browser-issued token, so the only reliable source is the panel YouTube renders itself. The script is not declared in the manifest and never runs unless the user has asked for a transcript.
+Injects a single content script into a YouTube video tab, on demand, to read the transcript panel. This is required because YouTube refuses direct caption downloads that lack a browser-issued token, so the fallback reads the panel YouTube renders itself, subject to its current markup. The script is not declared in the manifest and never runs unless the user has asked for a transcript.
 
 ### storage
 
-Stores two booleans - whether timestamps and paragraph grouping are enabled - so the user's formatting choices survive closing the popup. Also used to pass the transcript from the popup to the printable page, where it is deleted immediately after rendering. Storage is local only; chrome.storage.sync is not used, so nothing is uploaded to a Google account.
+Stores two booleans - whether timestamps and paragraph grouping are enabled - so the user's formatting choices survive closing the popup. Also used to pass the transcript from the popup to the printable page, where that handoff key is deleted after rendering. Cleanup failures are reported. Storage is local only; chrome.storage.sync is not used, so nothing is uploaded to a Google account.
 
 ### downloads
 
@@ -180,7 +181,9 @@ The extension fetches the YouTube watch page for the video the user asks about, 
 content of YouTube watch pages in order to function, but neither is collected:
 both are used transiently in memory and neither is stored or transmitted
 anywhere. The only network destination is `youtube.com`, and requests are made
-with `credentials: 'omit'`, so the user's YouTube session is never attached.
+with `credentials: 'omit'` for direct fetches. The panel fallback uses a normal
+YouTube tab, which can use its existing session; the extension does not read
+cookies or account credentials.
 The extension contains no analytics, no error reporting, no remote code, and no
 third-party dependencies.
 
@@ -279,4 +282,4 @@ defect:
 
 ### Rejection History
 
-None — not yet submitted.
+No rejection is recorded in this repository; current dashboard status is unverified.

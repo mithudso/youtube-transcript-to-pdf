@@ -107,11 +107,30 @@ test('parseWatchPage marks an unparseable response so it is not mistaken for a c
 });
 
 test('extractJsonVar treats the variable name as a literal, not a pattern', () => {
-  const html = 'var a.b = {"hit":true}; var axb = {"hit":false};';
+  const html = 'var axb = {"hit":false}; var a.b = {"hit":true};';
   assert.equal(extractJsonVar(html, 'a.b').hit, true);
 });
 
 test('parseWatchPage keeps escaped ampersands intact in signed caption URLs', () => {
   const html = '"captionTracks":[{"baseUrl":"https://x.test/a\\u0026sig=1\\u0026k=2","languageCode":"en"}]';
   assert.equal(parseWatchPage(html).tracks[0].baseUrl, 'https://x.test/a&sig=1&k=2');
+});
+
+test('malformed caption track shapes fail closed without crashing', () => {
+  for (const captionTracks of [{}, 'not-an-array', [null, { baseUrl: 'a', languageCode: {} }]]) {
+    const player = { captions: { playerCaptionsTracklistRenderer: { captionTracks } } };
+    const page = parseWatchPage(`var ytInitialPlayerResponse = ${JSON.stringify(player)};`);
+    assert.deepEqual(page.tracks, []);
+  }
+});
+
+test('JSON variable extraction does not match another identifier suffix', () => {
+  assert.deepEqual(extractJsonVar('var notytInitialPlayerResponse = {"wrong":true}; var ytInitialPlayerResponse = {"right":true};', 'ytInitialPlayerResponse'), { right: true });
+});
+
+
+test('an exact language match takes priority over an earlier regional track', () => {
+  const regional = { languageCode: 'en-GB', isGenerated: false };
+  const exact = { languageCode: 'en', isGenerated: true };
+  assert.strictEqual(pickTrack([regional, exact], 'en'), exact);
 });

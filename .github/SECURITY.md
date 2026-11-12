@@ -16,7 +16,8 @@ Include, where you can:
 - the affected file and, ideally, a line reference
 - a reproduction: a URL, a video, or a page that triggers the behaviour
 
-Expect an acknowledgement within a week.
+The maintainer reviews reports as availability permits. No response-time
+guarantee is offered.
 
 ## Scope
 

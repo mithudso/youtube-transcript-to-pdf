@@ -15,8 +15,8 @@
  *   node scripts/check-doc-indexes.mjs --prune    # drop dead JSON entries
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync, writeFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,7 +28,7 @@ const prune = process.argv.includes('--prune');
 const IGNORED_DIRECTORIES = new Set(['.git', 'node_modules', 'dist', '.remember', 'icons']);
 
 /** Extensions the index is expected to cover. */
-const INDEXED_EXTENSIONS = ['.js', '.mjs', '.html', '.css', '.json'];
+const INDEXED_EXTENSIONS = ['.js', '.mjs', '.py', '.html', '.css', '.json', '.yml', '.yaml'];
 
 /** @type {string[]} */
 const problems = [];
@@ -44,7 +44,7 @@ function listSourceFiles(directory) {
 
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.name.startsWith('.') && entry.name !== '.github') continue;
-    if (IGNORED_DIRECTORIES.has(entry.name)) continue;
+    if (IGNORED_DIRECTORIES.has(entry.name) || entry.name === '__pycache__') continue;
 
     const absolute = join(directory, entry.name);
     if (entry.isDirectory()) {
@@ -52,7 +52,7 @@ function listSourceFiles(directory) {
       continue;
     }
     if (INDEXED_EXTENSIONS.some((extension) => entry.name.endsWith(extension))) {
-      found.push(relative(root, absolute));
+      found.push(relative(root, absolute).split(sep).join('/'));
     }
   }
 
@@ -65,41 +65,63 @@ if (!existsSync(indexPath)) {
 }
 
 const index = JSON.parse(readFileSync(indexPath, 'utf8'));
-const entries = Array.isArray(index.files) ? index.files : [];
+if (!Array.isArray(index?.files)) {
+  console.error('Documentation index must contain a files array.');
+  process.exit(1);
+}
+const validPath = (path) => typeof path === 'string' && path.length > 0 &&
+  !isAbsolute(path) && !/^[A-Za-z]:/.test(path) && !path.includes('\\') &&
+  !path.split('/').some((part) => part === '..' || part === '.' || part === '');
+const entries = index.files.filter((entry) => {
+  if (validPath(entry?.path)) return true;
+  problems.push('index entry has an invalid repository-relative path');
+  return false;
+});
 
-const dead = entries.filter((entry) => !existsSync(join(root, entry.path)));
+const dead = entries.filter((entry) => !existsSync(join(root, entry.path)) || !statSync(join(root, entry.path)).isFile());
 for (const entry of dead) {
   problems.push(`index entry points at a missing file: ${entry.path}`);
 }
 
-// Source files under src/ and scripts/ are the ones retrieval actually needs.
+// Include runtime, tools, tests and CI; none of these surfaces is optional coverage.
 const indexed = new Set(entries.map((entry) => entry.path));
-const expected = listSourceFiles(join(root, 'src')).concat(listSourceFiles(join(root, 'scripts')));
+const expected = ['src', 'scripts', 'test', '.github/workflows'].flatMap((path) =>
+  existsSync(join(root, path)) ? listSourceFiles(join(root, path)) : [],
+);
 for (const path of expected) {
   if (!indexed.has(path)) problems.push(`source file missing from the index: ${path}`);
 }
 
 // The overview links to real paths in inline code spans; check the ones that
 // look like repository paths rather than every span.
+if (!existsSync(overviewPath)) problems.push('Missing docs/codebase-overview.md');
 if (existsSync(overviewPath)) {
   const overview = readFileSync(overviewPath, 'utf8');
   const referenced = new Set(
-    [...overview.matchAll(/`((?:src|scripts|test|docs|icons)\/[\w./-]+)`/g)].map((m) => m[1]),
+    [...overview.matchAll(/`([^`\r\n]+)`/g)].map((m) => m[1])
+      .filter((path) => /^(?:src|scripts|test|docs|icons)\//.test(path)),
   );
 
   for (const path of referenced) {
-    if (path.endsWith('/')) continue;
-    if (!existsSync(join(root, path))) {
+    const normalized = path.replace(/\/$/, '');
+    if (!validPath(normalized)) {
+      problems.push(`codebase-overview.md has an invalid repository-relative path: ${path}`);
+      continue;
+    }
+    if (!existsSync(join(root, normalized)) || (path.endsWith('/') && !statSync(join(root, normalized)).isDirectory())) {
       problems.push(`codebase-overview.md references a missing path: ${path}`);
     }
   }
 }
 
 if (prune && dead.length > 0) {
-  index.files = entries.filter((entry) => existsSync(join(root, entry.path)));
+  index.files = index.files.filter((entry) => !dead.includes(entry));
   writeFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
   console.log(`Pruned ${dead.length} dead entr${dead.length === 1 ? 'y' : 'ies'}.`);
-  process.exit(problems.length > dead.length ? 1 : 0);
+  for (const entry of dead) {
+    const position = problems.indexOf(`index entry points at a missing file: ${entry.path}`);
+    if (position !== -1) problems.splice(position, 1);
+  }
 }
 
 if (problems.length > 0) {

@@ -12,7 +12,7 @@ in the repo are the files Chrome loads.
 
 ```bash
 npm run check          # manifest validation + unit tests + doc index validation
-npm test               # 31 unit tests, Node built-in runner
+npm test               # unit and regression tests, Node built-in runner
 npm run lint:manifest  # manifest schema, file references, icon dimensions
 npm run lint:docs      # every path in the doc indexes still exists
 npm run build          # dist/youtube-transcript-to-pdf-<version>.zip
@@ -20,7 +20,7 @@ npm run build          # dist/youtube-transcript-to-pdf-<version>.zip
 
 There is no install step. Zero dependencies, on purpose.
 
-## Layout
+## Repository shape
 
 | Path | Role |
 | --- | --- |
@@ -57,7 +57,7 @@ There is no install step. Zero dependencies, on purpose.
 ## Verify before claiming done
 
 Run `npm run check` and paste the result. For anything touching the `chrome.*`
-layer — which no test covers — load the extension unpacked and exercise the
+layer — whose control flow has synthetic regression coverage — load the extension unpacked and exercise the
 path against a real video before saying it works.
 
 ## The known-fragile part
@@ -74,3 +74,11 @@ resolving, start there:
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — setup, debugging, troubleshooting
 - [docs/TESTING.md](docs/TESTING.md) — what is covered and what is not
 - [docs/known-issues.md](docs/known-issues.md) — current limitations
+
+## Maintenance records
+
+Keep dated bootstrap and optimizer reports under `docs/`, and update
+`docs/wiki/index.md` and retrieval indexes after structural changes. Preserve the
+public-repository exceptions in `docs/repo-bootstrap-audit-2026-08-27.md`: do not
+commit user prompts, session transcripts, or append-only operator logs. Bump both
+`manifest.json` and `package.json` for a shipped behavior change.

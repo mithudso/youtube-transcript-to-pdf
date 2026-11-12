@@ -26,7 +26,7 @@ Pure. Handles both caption payload formats.
 | Export | Signature | Notes |
 | --- | --- | --- |
 | `parseJson3` | `(body: string) => Segment[]` | `fmt=json3`. Drops the empty roll-up events auto-generated tracks emit. |
-| `parseTimedTextXml` | `(body: string) => Segment[]` | Legacy XML. Regex-based, not DOMParser, because service workers have no DOMParser. Decodes the double-escaped entities the feed uses. |
+| `parseTimedTextXml` | `(body: string) => Segment[]` | Legacy XML. Forward-only cue scan because service workers have no DOMParser. Decodes named and numeric references while preserving the feed’s double-escaping contract. |
 | `parseCaptions` | `(body: string) => Segment[]` | Dispatches on the first non-space character. |
 | `formatTimestamp` | `(seconds: number) => string` | `M:SS`, or `H:MM:SS` past an hour. |
 | `groupIntoParagraphs` | `(segments, options?) => Array<{start, text}>` | Merges cues until a character cap, a sentence end near that cap, or a speech gap over 2.5s. |
@@ -47,8 +47,9 @@ Pure. Emits PDF 1.4 bytes with no library.
 | `buildTranscriptPdf` | `(options) => Uint8Array` | Title block, optional grey subtitles, then timestamped paragraphs, paginated. |
 | `toSafeFilename` | `(title: string) => string` | Strips what `chrome.downloads` rejects: path separators, reserved characters, control characters, relative segments, leading and trailing dots. |
 
-Internals worth knowing: `HELVETICA_WIDTHS` is 95 entries covering code points
-32–126; bold is approximated with a 1.08 factor rather than a second table.
+Internals worth knowing: regular and bold Helvetica tables each cover the 95
+WinAnsi ASCII code points 32–126. Other Latin-1 glyphs use a conservative width
+bound. Timestamps wrap through the same width checks as other text.
 `assemblePdf` lays out objects as catalog, page tree, two fonts, info, then a
 page and content-stream pair per page, and computes cross-reference offsets from
 running byte position.
@@ -70,12 +71,13 @@ Request `{type: 'FETCH_TRANSCRIPT', url: string, language?: string}`, reply
 availableLanguages, segments}` where `source` is `'timedtext'` or `'panel'`.
 
 **Error codes:** `bad-url`, `watch-page`, `unavailable`, `unreadable`,
-`no-captions`, `blocked`, `timeout`, `network`, `unknown`.
+`no-captions`, `blocked`, `timeout`, `network`, `caption-url`, `language-unavailable`, `panel-navigation`, `unknown`.
 
 **Key functions:** `fetchWithTimeout` (15s abort, `credentials: 'omit'`),
 `loadWatchPage`, `loadTrackDirectly` (strategy 1), `readFromTranscriptPanel`
 (strategy 2 — reuses an open tab or opens and closes a background one),
-`waitForTabLoad`, `getTranscript` (orchestrates).
+`waitForTabLoad`, `getTranscript` (orchestrates). Tab identity is checked before
+and after panel extraction; navigation discards the result.
 
 **Depends on:** `src/lib/youtube.js`, `src/lib/transcript.js`,
 `chrome.tabs`, `chrome.scripting`, `chrome.runtime`.
@@ -96,6 +98,12 @@ stable `.segment-timestamp` and `.segment-text` classes, and the current
 matches structurally — the timestamp by its shape, the caption by its
 attributed-string span — and ignores the screen-reader duration label sitting
 between them.
+
+Only visible rows are read. Ambiguous structural captions are skipped with a
+counted warning instead of exporting metadata as caption text.
+
+Recognized caption subtrees are excluded from timestamp candidates. Multiple
+unresolved timestamps and ambiguous fragments are skipped with a warning.
 
 Cue durations are derived from the gap to the next cue, since the panel does not
 expose them.
@@ -119,9 +127,10 @@ All rendering uses `textContent`.
 
 ## `src/viewer/` — printable page
 
-`viewer.html` / `viewer.css` / `viewer.js`. Reads a one-shot payload from
-`chrome.storage.session`, deletes it, renders, and offers a print button. Print
-styles strip the toolbar and page chrome. This is the path that handles scripts
+`viewer.html` / `viewer.css` / `viewer.js`. Reads its uniquely keyed payload from
+`chrome.storage.session`, renders, deletes that key, and offers a print button. Print
+styles strip the toolbar and page chrome. Print stays disabled until rendering
+succeeds; a later cleanup failure does not disable the rendered transcript. This is the path that handles scripts
 the Latin-1 PDF writer cannot encode.
 
 **Depends on:** `chrome.storage.session`.
@@ -131,5 +140,25 @@ the Latin-1 PDF writer cannot encode.
 | File | Role |
 | --- | --- |
 | `validate-manifest.mjs` | Manifest V3 shape, referenced files exist, icon PNG signature and real pixel dimensions match their declared size, no V2 keys, no `<all_urls>`. |
+| `generate-doc-index.mjs` | Deterministically refreshes retrieval metadata and llms snapshots; `--check` detects drift. |
+| `check-syntax.mjs` | Syntax-checks all maintained JS files with Node. |
 | `check-doc-indexes.mjs` | Every path in `docs/high_signal_file_index.json` and `docs/codebase-overview.md` resolves. `--prune` drops dead index entries. |
 | `package-extension.mjs` | Builds `dist/<name>-<version>.zip` with only the files Chrome loads. |
+
+## Library usage example
+
+The pure modules can be imported directly from another ES module without Chrome:
+
+```js
+import { parseCaptions, renderText } from './src/lib/transcript.js';
+import { buildTranscriptPdf } from './src/lib/pdf.js';
+const segments = parseCaptions('{"events":[{"tStartMs":0,"segs":[{"utf8":"Hello"}]}]}');
+const text = renderText(segments, { timestamps: false });
+const pdf = buildTranscriptPdf({ title: 'Example', blocks: [{ text }] });
+```
+
+`buildTranscriptPdf` rejects non-finite or impossible font/margin geometry.
+`parseTimedTextXml` removes actual child markup before decoding literal text.
+The worker consumes response bodies inside its timeout and rejects outbound redirects.
+Panel transcripts use `language: 'unknown'` and `isGenerated: null` because the
+injected reader cannot establish track metadata.

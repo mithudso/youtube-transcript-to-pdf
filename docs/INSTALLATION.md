@@ -4,13 +4,13 @@
 
 - **Chrome 116 or newer** (or a Chromium browser of equivalent vintage —
   Edge, Brave, Arc). Check at `chrome://version`.
-- **Node 20 or newer**, only if you intend to run the tests or build an archive.
+- **Node 22 or newer**, only if you intend to run the tests or build an archive.
   Not needed to use the extension.
 
 ## Install from source (unpacked)
 
-This is the only supported install today. The extension is not on the Chrome
-Web Store.
+The supported development install is unpacked. The repository last recorded a
+store draft on 2026-08-27; current publication status has not been verified.
 
 ```bash
 git clone https://github.com/mithudso/youtube-transcript-to-pdf.git

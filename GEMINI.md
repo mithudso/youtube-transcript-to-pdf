@@ -12,7 +12,7 @@ only — no server, no dependencies, no build step for the extension itself.
 
 ```bash
 npm run check   # manifest validation + unit tests + doc index validation
-npm test        # 31 unit tests, Node built-in runner
+npm test        # unit and regression tests, Node built-in runner
 npm run build   # dist/<name>-<version>.zip
 ```
 
@@ -27,5 +27,5 @@ npm run build   # dist/<name>-<version>.zip
 
 ## Verification
 
-`npm run check` for the pure modules. Anything touching `chrome.*` has no
-automated coverage — load the extension unpacked and test it by hand.
+`npm run check` for the pure modules. Synthetic tests cover `chrome.*` control flow. Load the extension in a
+disposable browser profile for API wiring checks, and report live-video limits.

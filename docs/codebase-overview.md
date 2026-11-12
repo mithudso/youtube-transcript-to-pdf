@@ -11,7 +11,7 @@ youtube-transcript-to-pdf/
 ├── manifest.json          MV3 declaration — the entry point Chrome reads
 ├── icons/                 16/32/48/128px PNGs, real dimensions enforced by CI
 ├── src/
-│   ├── lib/               pure modules, no chrome.* — all tests live against these
+│   ├── lib/               pure modules, no chrome.* — pure logic tests target these
 │   ├── background/        service worker: network and tabs
 │   ├── content/           injected transcript-panel reader
 │   ├── popup/             the UI
@@ -76,12 +76,14 @@ under plain Node, and it is the codebase's most important structural rule.
 | --- | --- |
 | `src/viewer/viewer.html` | Markup for the printable transcript. |
 | `src/viewer/viewer.css` | Document styling plus print rules that strip the toolbar. |
-| `src/viewer/viewer.js` | Reads the one-shot payload from session storage, deletes it, renders. This is the path that handles scripts Latin-1 cannot encode. |
+| `src/viewer/viewer.js` | Reads its unique handoff key from session storage, renders, and deletes that key. This is the path that handles scripts Latin-1 cannot encode. |
 
 ## `scripts/` — tooling
 
 | File | Role |
 | --- | --- |
+| `scripts/check-syntax.mjs` | Syntax-checks all maintained JavaScript with Node, without installing a linter. |
+| `scripts/generate-doc-index.mjs` | Regenerates retrieval metadata and llms snapshots; `--check` detects drift. |
 | `scripts/validate-manifest.mjs` | Manifest shape, referenced files exist, icon PNG signatures and real pixel dimensions match their declared size, no Manifest V2 keys, no `<all_urls>`. |
 | `scripts/check-doc-indexes.mjs` | Every path in the doc indexes resolves, and no source file is missing from the index. `--prune` drops dead entries. |
 | `scripts/package-extension.mjs` | Builds `dist/<name>-<version>.zip` from only the files Chrome loads. |
@@ -91,13 +93,19 @@ under plain Node, and it is the codebase's most important structural rule.
 
 ## `test/` — unit tests
 
-31 tests on the Node built-in runner. No framework, no config, no install.
+114 tests on the Node built-in runner, plus four optional Pillow tests. Core tests require no install. The optional artwork tests use Pillow in a disposable environment.
 
 | File | Covers |
 | --- | --- |
 | `test/youtube.test.js` | URL shapes, hostname-allowlist rejection, watch-page parsing, the bare-`captionTracks` fallback, the `parsed` flag, regex-literal escaping, track-selection precedence. |
 | `test/transcript.test.js` | Both caption formats, the empty body YouTube returns when blocking, format dispatch, timestamps, paragraph grouping, render options. |
 | `test/pdf.test.js` | Transliteration, word wrap including hard-split of over-long words, PDF structural validity with byte-accurate cross-reference offsets, pagination, escaping, filename sanitisation. |
+| `test/content-script.test.js` | Executes the shipping injected script with synthetic DOM rows and deterministic timers. |
+| `test/service-worker.test.js` | Imports the actual worker with disposable APIs; bounds response bodies, ownership and language behavior. |
+| `test/popup.test.js` | Imports the actual popup; checks request ordering, exports, downloads and preference errors. |
+| `test/viewer.test.js` | Executes the shipping viewer; checks handoff identity and storage failures. |
+| `test/tooling.test.js` | Runs actual CLI tools in disposable filesystem fixtures. |
+| `test/store_assets_test.py` | Optional Pillow tests with synthetic local images; no committed assets are rewritten. |
 
 ## `icons/`
 
@@ -106,8 +114,7 @@ under plain Node, and it is the codebase's most important structural rule.
 a page with a turned-down corner and lines of text; it replaced an earlier play
 triangle that read as YouTube's logo. Each must be exactly the size it is
 declared under —
-Chrome silently refuses to load an extension whose icon dimensions do not
-match, which is why `lint:manifest` reads the PNG header rather than trusting
+`lint:manifest` verifies PNG data and dimensions rather than trusting
 the filename.
 
 ## `docs/`
@@ -123,11 +130,16 @@ the filename.
 | `docs/requirements.md` | Functional and non-functional requirements, and what is out of scope. |
 | `docs/logging.md` | Levels, what is logged, and what must never be. |
 | `docs/caching-and-optimization.md` | What is cached, what deliberately is not, where the time goes. |
-| `docs/external-calls.md` | All three external calls with timeout, retry, error handling, and test status. |
+| `docs/external-calls.md` | Network, browser API and local tool boundaries with timeout, retry, error handling and test status. |
 | `docs/integrations-and-assumptions.md` | Every load-bearing assumption about YouTube and Chrome. |
 | `docs/known-issues.md` | Active limitations, videos that will never work, and what is not a bug. |
 | `docs/onboarding.md` | A first-hour path through the codebase. |
 | `docs/codebase-overview.md` | This file. |
+| `docs/wiki/index.md` | Maintained documentation entry point. |
+| `docs/MCP.md` | Explicit MCP non-applicability. |
+| `docs/repo-bootstrap-audit-2026-11-12.md` | Current standards audit and delivery boundary. |
+| `docs/code-deep-optimizer-2026-11-12.md` | Full optimizer findings, gates and rollback. |
+| `docs/maintenance-coverage-2026-11-12.md` | File universe, exclusions and per-file review accounting. |
 | `docs/high_signal_file_index.json` | Machine-readable retrieval index. |
 | `docs/runbooks/transcript-panel-broke.md` | Diagnosing and fixing a YouTube markup change. |
 | `docs/runbooks/chrome-web-store-submission.md` | Field-by-field walkthrough of a store submission, and what to do if it is rejected. |
@@ -137,7 +149,7 @@ the filename.
 ## `.github/`
 
 `copilot-instructions.md` (Copilot CLI rules), `workflows/ci.yml` (checks on
-Node 20/22/24, then packaging), `dependabot.yml` (Actions only — there are no
+Node 22/24/26, then packaging), `dependabot.yml` (Actions only — there are no
 npm deps), `CODEOWNERS`, `SECURITY.md`, `PULL_REQUEST_TEMPLATE.md`, and issue
 templates.
 

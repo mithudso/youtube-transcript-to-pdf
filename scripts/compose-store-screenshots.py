@@ -27,6 +27,8 @@ from __future__ import annotations
 import pathlib
 import sys
 
+import warnings
+
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -54,7 +56,8 @@ def font(path: str, size: int) -> ImageFont.FreeTypeFont:
     try:
         return ImageFont.truetype(path, size)
     except OSError:
-        return ImageFont.load_default()
+        warnings.warn(f"Requested font {path} unavailable; using Pillow default at {size}px.", RuntimeWarning, stacklevel=2)
+        return ImageFont.load_default(size=size)
 
 
 def css_box(x: float, y: float, width: float, height: float) -> tuple[int, int, int, int]:
@@ -136,10 +139,10 @@ def draw_copy(canvas: Image.Image, heading: str, body: str, box: tuple[int, int,
         y += 34
 
 
-def scaled(image: Image.Image, height: int) -> Image.Image:
-    """Resizes to a target height, preserving aspect ratio."""
-    ratio = height / image.height
-    return image.resize((max(1, round(image.width * ratio)), height), Image.LANCZOS)
+def scaled(image: Image.Image, height: int, max_width: int | None = None) -> Image.Image:
+    """Fits within the height and optional width, preserving aspect ratio."""
+    ratio = min(height / image.height, max_width / image.width) if max_width else height / image.height
+    return image.resize((max(1, round(image.width * ratio)), max(1, round(image.height * ratio))), Image.LANCZOS)
 
 
 def require(name: str) -> Image.Image:
@@ -148,6 +151,14 @@ def require(name: str) -> Image.Image:
     if not path.exists():
         sys.exit(f"Missing {path.relative_to(ROOT)} — capture it before composing.")
     return Image.open(path)
+
+
+def crop_capture(name: str, box: tuple[int, int, int, int]) -> Image.Image:
+    """Reject incompatible captures instead of silently padding with black pixels."""
+    with require(name) as image:
+        if box[0] < 0 or box[1] < 0 or box[2] > image.width or box[3] > image.height:
+            raise ValueError(f"{name}: capture {image.size} cannot cover crop {box}")
+        return image.crop(box)
 
 
 def flatten(image: Image.Image) -> Image.Image:
@@ -169,16 +180,16 @@ def build_popup_shot() -> None:
     """Screenshot 1: the popup, mid-export.
 
     Prefers a capture of the running extension when one is available. Browser
-    automation cannot reach `chrome-extension://` URLs, so that capture has to
-    be taken by hand and dropped in as `raw-popup-live.png`; without it, the
-    harness render stands in.
+    capture tooling must load the unpacked extension in a disposable profile.
+    Existing captures were supplied by hand as `raw-popup-live.png`; without it,
+    the harness render stands in.
     """
     live = ASSETS / "raw-popup-live.png"
     if live.exists():
         art = flatten(Image.open(live))
     else:
         # The popup renders at 988x1194 CSS pixels at the zoom used for capture.
-        art = require("raw-popup.jpg").crop(css_box(0, 0, 988, 1194))
+        art = crop_capture("raw-popup.jpg", css_box(0, 0, 988, 1194))
     canvas = new_canvas()
 
     draw_copy(
@@ -188,7 +199,7 @@ def build_popup_shot() -> None:
         "language, choose timestamps and paragraphs, and export.",
         (80, 150, 520),
     )
-    card = scaled(art, 664)
+    card = scaled(art, 664, 500)
     paste_card(canvas, card, (CANVAS[0] - card.width - 90, 68))
     canvas.convert("RGB").save(ASSETS / "screenshot-1-popup.png")
 
@@ -205,7 +216,7 @@ def build_pdf_shot() -> None:
         "straight to your downloads, with timestamps and readable paragraphs.",
         (80, 150, 520),
     )
-    paste_card(canvas, scaled(art, 672), (690, 64), radius=6)
+    paste_card(canvas, scaled(art, 672, 500), (690, 64), radius=6)
     canvas.convert("RGB").save(ASSETS / "screenshot-2-pdf.png")
 
 
@@ -214,7 +225,7 @@ def build_viewer_shot() -> None:
     # Crop to the rendered document itself. The toolbar is excluded: it sits
     # flush against the viewport edge, so any crop that includes part of it
     # slices the button in half.
-    art = require("raw-viewer.jpg").crop(css_box(668, 132, 1474, 1106))
+    art = crop_capture("raw-viewer.jpg", css_box(668, 132, 1474, 1106))
     canvas = new_canvas()
 
     draw = ImageDraw.Draw(canvas)

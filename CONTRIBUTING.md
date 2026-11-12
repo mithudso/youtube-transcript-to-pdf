@@ -2,8 +2,9 @@
 
 ## Getting set up
 
-You need Node 20 or newer and Chrome. There is nothing to install — the project
-has no dependencies, and every script runs on the Node standard library.
+You need Node 22 or newer and Chrome. There is nothing to install — the project
+has no dependencies, and the core checks run on the Node standard library. Optional artwork scripts
+use Python and Pillow; see docs/DEVELOPMENT.md.
 
 ```bash
 git clone https://github.com/mithudso/youtube-transcript-to-pdf.git
@@ -19,12 +20,12 @@ need the popup reopened.
 ## Before you open a pull request
 
 ```bash
-npm run check   # manifest validation + 31 unit tests + doc index validation
+npm run check   # manifest validation + unit and regression tests + doc index validation
 ```
 
 Then load the extension unpacked and exercise the path you changed against a
-real video. Automated tests cover the pure modules under `src/lib/`; nothing
-covers the `chrome.*` layer, so that part needs a human.
+real video. Automated tests cover pure modules and synthetic browser-API control flow.
+Native browser wiring and current YouTube behavior need separately recorded checks.
 
 Test against a video with **human-authored** captions and one with
 **auto-generated** captions. They take different code paths often enough to
