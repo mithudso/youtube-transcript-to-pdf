@@ -1,3 +1,5 @@
+<!-- {% raw %} -->
+
 # Code deep optimizer — 2026-11-12
 
 Full repository mode, 18 passes, no source cap, two concurrent bounded readers, max five iterations and max two blind attempts. Empirical mode is N/A: this repository has no held-out evaluation or benchmark. Test counts are coverage accounting, not quality scores.
@@ -934,3 +936,5 @@ index: n/a (outside semantic corpus roots). No semantic-indexing or embedding co
 ## 12. Memory-central
 
 memory-central: none for youtube-transcript-to-pdf. Existing bootstrap decisions and Stele task constraints were consulted; separate anchored records preserve the body-timeout, panel-language and navigation risks. Codex memory files were not edited. Historical baseline tests preceded the current isolation controls and are not evidence of no semantic-dispatch effects.
+
+<!-- {% endraw %} -->
